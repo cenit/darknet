@@ -7,7 +7,10 @@
 #include "box.h"
 #include "image.h"
 #include "demo.h"
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
+#include <time.h>
 
 #define DEMO 1
 

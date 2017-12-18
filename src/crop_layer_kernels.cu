@@ -95,7 +95,7 @@ __device__ float bilinear_interpolate_kernel(float *image, int w, int h, float x
     return val;
 }
 
-__global__ void levels_image_kernel(float *image, float *rand, int batch, int w, int h, int train, float saturation, float exposure, float translate, float scale, float shift)
+__global__ void levels_image_kernel(float *image, float *dn_randf, int batch, int w, int h, int train, float saturation, float exposure, float translate, float scale, float shift)
 {
     int size = batch * w * h;
     int id = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
@@ -104,13 +104,13 @@ __global__ void levels_image_kernel(float *image, float *rand, int batch, int w,
     id /= w;
     int y = id % h;
     id /= h;
-    float rshift = rand[0];
-    float gshift = rand[1];
-    float bshift = rand[2];
-    float r0 = rand[8*id + 0];
-    float r1 = rand[8*id + 1];
-    float r2 = rand[8*id + 2];
-    float r3 = rand[8*id + 3];
+    float rshift = dn_randf[0];
+    float gshift = dn_randf[1];
+    float bshift = dn_randf[2];
+    float r0 = dn_randf[8*id + 0];
+    float r1 = dn_randf[8*id + 1];
+    float r2 = dn_randf[8*id + 2];
+    float r3 = dn_randf[8*id + 3];
 
     saturation = r0*(saturation - 1) + 1;
     saturation = (r1 > .5f) ? 1.f/saturation : saturation;
@@ -136,7 +136,7 @@ __global__ void levels_image_kernel(float *image, float *rand, int batch, int w,
     image[x + w*(y + h*2)] = rgb.z*scale + translate + (bshift - .5f)*shift;
 }
 
-__global__ void forward_crop_layer_kernel(float *input, float *rand, int size, int c, int h, int w, int crop_height, int crop_width, int train, int flip, float angle, float *output)
+__global__ void forward_crop_layer_kernel(float *input, float *dn_randf, int size, int c, int h, int w, int crop_height, int crop_width, int train, int flip, float angle, float *output)
 {
     int id = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if(id >= size) return;
@@ -153,10 +153,10 @@ __global__ void forward_crop_layer_kernel(float *input, float *rand, int size, i
     id /= c;
     int b = id;
 
-    float r4 = rand[8*b + 4];
-    float r5 = rand[8*b + 5];
-    float r6 = rand[8*b + 6];
-    float r7 = rand[8*b + 7];
+    float r4 = dn_randf[8*b + 4];
+    float r5 = dn_randf[8*b + 5];
+    float r6 = dn_randf[8*b + 6];
+    float r7 = dn_randf[8*b + 7];
 
     float dw = (w - crop_width)*r4;
     float dh = (h - crop_height)*r5;

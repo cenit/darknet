@@ -6,7 +6,7 @@
 void free_layer(layer l)
 {
     if(l.type == DROPOUT){
-        if(l.rand)           free(l.rand);
+        if(l.dn_randf)           free(l.dn_randf);
 #ifdef GPU
         if(l.rand_gpu)             cuda_free(l.rand_gpu);
 #endif
@@ -17,7 +17,7 @@ void free_layer(layer l)
     if(l.input_layers)       free(l.input_layers);
     if(l.input_sizes)        free(l.input_sizes);
     if(l.map)                free(l.map);
-    if(l.rand)               free(l.rand);
+    if(l.dn_randf)               free(l.dn_randf);
     if(l.cost)               free(l.cost);
     if(l.state)              free(l.state);
     if(l.prev_state)         free(l.prev_state);

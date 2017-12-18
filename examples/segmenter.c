@@ -1,6 +1,12 @@
 #include "darknet.h"
+#ifndef _WIN32
 #include <sys/time.h>
+#endif
+#include <time.h>
 #include <assert.h>
+#ifdef _WIN32
+#include <timeutils.h>
+#endif
 
 void train_segmenter(char *datacfg, char *cfgfile, char *weightfile, int *gpus, int ngpus, int clear, int display)
 {

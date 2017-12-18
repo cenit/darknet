@@ -5,6 +5,7 @@
 *.png
 *.jpg
 *.pyc
+build/
 old/
 mnist/
 data/
@@ -16,7 +17,15 @@ convnet/
 decaf/
 submission/
 cfg/
+bin/
+doc/
 darknet
+
+log.err
+log.out
+log.txt
+voc_label.py
+
 .fuse*
 
 # OS Generated #
@@ -25,3 +34,7 @@ ehthumbs.db
 Icon?
 Thumbs.db
 *.swp
+*.weights
+*.a
+*.so
+*.tar

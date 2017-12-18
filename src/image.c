@@ -1399,7 +1399,7 @@ void test_resize(char *filename)
         float dhue = rand_uniform(-hue, hue);
 
         distort_image(c, dhue, dsat, dexp);
-        show_image(c, "rand");
+        show_image(c, "dn_randf");
         printf("%f %f %f\n", dhue, dsat, dexp);
         free_image(c);
         cvWaitKey(0);

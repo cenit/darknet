@@ -5,6 +5,7 @@
 #include <string.h>
 #include <pthread.h>
 
+
 #define SECRET_NUM -1234
 extern int gpu_index;
 
@@ -20,6 +21,12 @@ extern int gpu_index;
     #endif
 #endif
 
+#ifdef _WIN32
+#include <cvround.h>
+#define popen _popen
+#define pclose _pclose
+#define sleep(x) Sleep(x)
+#endif
 #ifndef __cplusplus
     #ifdef OPENCV
     #include "opencv2/highgui/highgui_c.h"
@@ -202,7 +209,7 @@ struct layer{
     int   * input_layers;
     int   * input_sizes;
     int   * map;
-    float * rand;
+    float * dn_randf;
     float * cost;
     float * state;
     float * prev_state;
