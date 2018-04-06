@@ -1,29 +1,29 @@
 #ifndef IMAGE_H
 #define IMAGE_H
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <float.h>
-#include <string.h>
-#include <math.h>
 #include "box.h"
 #include "darknet.h"
+#include <float.h>
+#include <math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #ifndef __cplusplus
 #ifdef OPENCV
-int fill_image_from_stream(CvCapture *cap, image im);
+int fill_image_from_stream(CvCapture* cap, image im);
 image ipl_to_image(IplImage* src);
 void ipl_into_image(IplImage* src, image im);
-void flush_stream_buffer(CvCapture *cap, int n);
-void show_image_cv(image p, const char *name, IplImage *disp);
+void flush_stream_buffer(CvCapture* cap, int n);
+void show_image_cv(image p, const char* name, IplImage* disp);
 #endif
 #endif
 
 float get_color(int c, int x, int max);
 void draw_box(image a, int x1, int y1, int x2, int y2, float r, float g, float b);
 void draw_bbox(image a, box bbox, int w, float r, float g, float b);
-void draw_label(image a, int r, int c, image label, const float *rgb);
-void write_label(image a, int r, int c, image *characters, char *string, float *rgb);
+void draw_label(image a, int r, int c, image label, const float* rgb);
+void write_label(image a, int r, int c, image* characters, char* string, float* rgb);
 image image_distance(image a, image b);
 void scale_image(image m, float s);
 image rotate_crop_image(image im, float rad, float s, int w, int h, float dx, float dy, float aspect);
@@ -45,15 +45,14 @@ void hsv_to_rgb(image im);
 void yuv_to_rgb(image im);
 void rgb_to_yuv(image im);
 
-
 image collapse_image_layers(image source, int border);
-image collapse_images_horz(image *ims, int n);
-image collapse_images_vert(image *ims, int n);
+image collapse_images_horz(image* ims, int n);
+image collapse_images_vert(image* ims, int n);
 
-void show_image_normalized(image im, const char *name);
-void show_images(image *ims, int n, char *window);
-void show_image_layers(image p, char *name);
-void show_image_collapsed(image p, char *name);
+void show_image_normalized(image im, const char* name);
+void show_images(image* ims, int n, char* window);
+void show_image_layers(image p, char* name);
+void show_image_collapsed(image p, char* name);
 
 void print_image(image m);
 
@@ -63,4 +62,3 @@ void copy_image_into(image src, image dest);
 image get_image_layer(image m, int l);
 
 #endif
-

@@ -1,10 +1,12 @@
 cmake_minimum_required(VERSION 3.1)
 set(CMAKE_CXX_STANDARD 11)
 project(darknet)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 
-if(VCPKG_CHAINLOAD_TOOLCHAIN_FILE)
-    include("${VCPKG_CHAINLOAD_TOOLCHAIN_FILE}")
+if (EXISTS "$ENV{WORKSPACE}/sysconfig/cmake/physycom_config.cmake")
+   message(STATUS "Enabling physycom settings")
+   include("$ENV{WORKSPACE}/sysconfig/cmake/physycom_config.cmake")
+else()
+   message(STATUS "Unable to find physycom settings file")
 endif()
 
 include(CheckFunctionExists)
@@ -15,6 +17,10 @@ if(MSVC)
   add_compile_options(/wd4305)
   add_compile_options(/wd4477)
   add_compile_options(/wd4996)
+endif()
+
+if(APPLE)
+  add_compile_options(-fpermissive)
 endif()
 
 find_package(OpenCV)
@@ -190,6 +196,10 @@ if (MSVC)
   )
 endif()
 
+if (APPLE OR MSVC)
+  SET_SOURCE_FILES_PROPERTIES(${YOLO_SOURCE_FILES} PROPERTIES LANGUAGE CXX )
+  SET_SOURCE_FILES_PROPERTIES(${DARKNET_SOURCE_FILES} PROPERTIES LANGUAGE CXX )
+endif()
 
 file(GLOB CUDA_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.cu)
 
