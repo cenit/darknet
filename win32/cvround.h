@@ -4,4 +4,4 @@
 
 #include "math.h"
 
-int cvRound(double );
+int cvRound(double);

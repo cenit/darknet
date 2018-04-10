@@ -53,4 +53,3 @@ im = array_to_image(arr)
 dn.rgbgr_image(im)
 r = detect2(net, meta, im)
 print r
-

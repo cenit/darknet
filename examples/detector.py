@@ -24,4 +24,3 @@ r = dn.detect(net, meta, "data/horses.jpg")
 print r
 r = dn.detect(net, meta, "data/person.jpg")
 print r
-

@@ -20,4 +20,3 @@ void pull_connected_layer(layer l);
 #endif
 
 #endif
-
