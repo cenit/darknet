@@ -9,6 +9,8 @@ else()
    message(STATUS "Unable to find physycom settings file")
 endif()
 
+set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
+
 include(CheckFunctionExists)
 
 if(MSVC)

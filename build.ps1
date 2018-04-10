@@ -1,9 +1,10 @@
 #!/usr/bin/env powershell
 
-mkdir -Force build
-cd build
+#Remove-Item build -Force -Recurse -ErrorAction SilentlyContinue
+New-Item -Path .\build -ItemType directory -Force
+Set-Location build
 
-cmake -G "Ninja" "-DCMAKE_TOOLCHAIN_FILE=$env:WORKSPACE\vcpkg\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_CHAINLOAD_TOOLCHAIN_FILE=$env:WORKSPACE\sysconfig\cmake\physycom_toolchain.cmake" "-DCMAKE_BUILD_TYPE=Release" ..
+cmake -G "Ninja" "-DCMAKE_TOOLCHAIN_FILE=$env:VCPKG_ROOT\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$env:VCPKG_DEFAULT_TRIPLET" "-DCMAKE_BUILD_TYPE=Release" ..
 cmake --build . --config Release
 
-cd ..
+Set-Location ..
