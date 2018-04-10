@@ -17,6 +17,11 @@ decaf/
 submission/
 cfg/
 darknet
+darknet.exe
+libdarknet.a
+libdarknet.so
+darknet.lib
+darknet.dll
 .fuse*
 
 # OS Generated #
