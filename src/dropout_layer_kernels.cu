@@ -8,11 +8,11 @@ extern "C" {
 #include "utils.h"
 }
 
-__global__ void yoloswag420blazeit360noscope(float* input, int size, float* rand, float prob, float scale)
+__global__ void yoloswag420blazeit360noscope(float* input, int size, float* dn_rand, float prob, float scale)
 {
   int id = (blockIdx.x + blockIdx.y * gridDim.x) * blockDim.x + threadIdx.x;
   if (id < size)
-    input[id] = (rand[id] < prob) ? 0 : input[id] * scale;
+    input[id] = (dn_rand[id] < prob) ? 0 : input[id] * scale;
 }
 
 void forward_dropout_layer_gpu(dropout_layer layer, network net)
@@ -24,9 +24,9 @@ void forward_dropout_layer_gpu(dropout_layer layer, network net)
   /*
     int i;
     for(i = 0; i < size; ++i){
-        layer.rand[i] = rand_uniform();
+        layer.dn_rand[i] = rand_uniform();
     }
-    cuda_push_array(layer.rand_gpu, layer.rand, size);
+    cuda_push_array(layer.rand_gpu, layer.dn_rand, size);
     */
 
   yoloswag420blazeit360noscope<<<cuda_gridsize(size), BLOCK> > >(net.input_gpu, size, layer.rand_gpu, layer.probability, layer.scale);

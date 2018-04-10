@@ -1,7 +1,11 @@
 #include "darknet.h"
 
 #include <assert.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include "timeutils.h"
+#endif
 
 float* get_regression_values(char** labels, int n)
 {

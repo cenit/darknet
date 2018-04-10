@@ -1,6 +1,10 @@
 #include "darknet.h"
 #include <assert.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include "timeutils.h"
+#endif
 
 void train_regressor(char* datacfg, char* cfgfile, char* weightfile, int* gpus, int ngpus, int clear)
 {

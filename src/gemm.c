@@ -294,29 +294,29 @@ void test_gpu_accuracy(int TA, int TB, int m, int k, int n)
 int test_gpu_blas()
 {
   /*
-       test_gpu_accuracy(0,0,10,576,75); 
+       test_gpu_accuracy(0,0,10,576,75);
 
-       test_gpu_accuracy(0,0,17,10,10); 
-       test_gpu_accuracy(1,0,17,10,10); 
-       test_gpu_accuracy(0,1,17,10,10); 
-       test_gpu_accuracy(1,1,17,10,10); 
+       test_gpu_accuracy(0,0,17,10,10);
+       test_gpu_accuracy(1,0,17,10,10);
+       test_gpu_accuracy(0,1,17,10,10);
+       test_gpu_accuracy(1,1,17,10,10);
 
-       test_gpu_accuracy(0,0,1000,10,100); 
-       test_gpu_accuracy(1,0,1000,10,100); 
-       test_gpu_accuracy(0,1,1000,10,100); 
-       test_gpu_accuracy(1,1,1000,10,100); 
+       test_gpu_accuracy(0,0,1000,10,100);
+       test_gpu_accuracy(1,0,1000,10,100);
+       test_gpu_accuracy(0,1,1000,10,100);
+       test_gpu_accuracy(1,1,1000,10,100);
 
-       test_gpu_accuracy(0,0,10,10,10); 
+       test_gpu_accuracy(0,0,10,10,10);
 
-       time_gpu(0,0,64,2916,363); 
-       time_gpu(0,0,64,2916,363); 
-       time_gpu(0,0,64,2916,363); 
-       time_gpu(0,0,192,729,1600); 
-       time_gpu(0,0,384,196,1728); 
-       time_gpu(0,0,256,196,3456); 
-       time_gpu(0,0,256,196,2304); 
-       time_gpu(0,0,128,4096,12544); 
-       time_gpu(0,0,128,4096,4096); 
+       time_gpu(0,0,64,2916,363);
+       time_gpu(0,0,64,2916,363);
+       time_gpu(0,0,64,2916,363);
+       time_gpu(0,0,192,729,1600);
+       time_gpu(0,0,384,196,1728);
+       time_gpu(0,0,256,196,3456);
+       time_gpu(0,0,256,196,2304);
+       time_gpu(0,0,128,4096,12544);
+       time_gpu(0,0,128,4096,4096);
      */
   time_gpu(0, 0, 64, 75, 12544);
   time_gpu(0, 0, 64, 75, 12544);

@@ -7,6 +7,9 @@
 #include "utils.h"
 #include <stdio.h>
 #include <time.h>
+#ifdef _WIN32
+#include "timeutils.h"
+#endif
 
 #ifdef AI2
 #include "xnor_layer.h"

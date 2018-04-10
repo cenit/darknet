@@ -32,5 +32,6 @@ Thumbs.db
 *.swp
 
 build/
+bin/
 .vs/
 .vscode/

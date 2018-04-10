@@ -1,4 +1,4 @@
-#include <timeutils.h>
+#include "timeutils.h"
 
 int clock_gettime(int dummy, struct timespec* ct)
 {

@@ -1,4 +1,4 @@
-#include <timeutils.h>
+#include "timeutils.h"
 
 int gettimeofday(struct timeval* tp, struct timezone* tzp)
 {

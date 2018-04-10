@@ -19,6 +19,7 @@ if(MSVC)
   add_compile_options(/wd4305)
   add_compile_options(/wd4477)
   add_compile_options(/wd4996)
+  set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -35,7 +36,12 @@ find_package(CUDA)
 if(CUDA_FOUND)
   add_definitions(-DGPU)
   include_directories(${CUDA_INCLUDE_DIRS})
+else()
+  if(MSVC)
+    set(CUDA_ADDITIONAL_BUILD_FILE ${CMAKE_SOURCE_DIR}/src/cuda.c)
+  endif()
 endif()
+
 
 find_package(CUDNN)
 if(CUDNN_FOUND)
@@ -83,6 +89,7 @@ list(APPEND DARKNET_SOURCE_FILES
 #  ${CMAKE_SOURCE_DIR}/examples/voxel.c
 #  ${CMAKE_SOURCE_DIR}/examples/writing.c
   ${CMAKE_SOURCE_DIR}/examples/yolo.c
+  ${CUDA_ADDITIONAL_BUILD_FILE}
 )
 
 #file(GLOB YOLO_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.c)
@@ -221,7 +228,12 @@ file(GLOB CUDA_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.cu)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-add_library(darknet_lib STATIC ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
+#add_library(darknet_lib STATIC ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
+#target_link_libraries(darknet_lib
+#  ${CMAKE_THREAD_LIBS_INIT}
+#)
+
+add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
 target_link_libraries(darknet_lib
   ${CMAKE_THREAD_LIBS_INIT}
 )

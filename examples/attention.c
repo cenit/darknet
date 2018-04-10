@@ -1,7 +1,11 @@
 #include "darknet.h"
 
 #include <assert.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include "timeutils.h"
+#endif
 
 void extend_data_truth(data* d, int n, float val)
 {

@@ -612,7 +612,7 @@ move pick_move(mcts_tree* tree, float temp, int player)
   m.value = (tree->result + 1.) / 2.;
   m.mcts = (tree->mean[index] + 1.) / 2.;
 
-  int indexes[nind];
+  int *indexes = malloc(nind*sizeof(int));
   top_k(probs, 19 * 19 + 1, nind, indexes);
   print_board(stderr, tree->board, player, indexes);
 
@@ -1170,7 +1170,7 @@ void test_go(char* cfg, char* weights, int multi)
     float result = predict_move2(net, board, move, multi);
     printf("%.2f%% Win Chance\n", (result + 1) / 2 * 100);
 
-    int indexes[nind];
+    int *indexes = malloc(nind*sizeof(int));
     int row, col;
     top_k(move, 19 * 19 + 1, nind, indexes);
     print_board(stderr, board, color, indexes);

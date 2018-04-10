@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#ifdef _WIN32
+#include "timeutils.h"
+#endif
 
 extern void predict_classifier(char* datacfg, char* cfgfile, char* weightfile, char* filename, int top);
 extern void test_detector(char* datacfg, char* cfgfile, char* weightfile, char* filename, float thresh, float hier_thresh, char* outfile, int fullscreen);

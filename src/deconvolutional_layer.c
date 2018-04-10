@@ -9,6 +9,9 @@
 
 #include <stdio.h>
 #include <time.h>
+#ifdef _WIN32
+#include "timeutils.h"
+#endif
 
 static size_t get_workspace_size(layer l)
 {

@@ -7,7 +7,11 @@
 #include "parser.h"
 #include "region_layer.h"
 #include "utils.h"
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include "timeutils.h"
+#endif
 
 #define DEMO 1
 
@@ -332,7 +336,7 @@ void demo(char* cfgfile, char* weightfile, float thresh, int cam_index, const ch
 
    int count = 0;
    if(!prefix){
-   cvNamedWindow("Demo", CV_WINDOW_NORMAL); 
+   cvNamedWindow("Demo", CV_WINDOW_NORMAL);
    if(fullscreen){
    cvSetWindowProperty("Demo", CV_WND_PROP_FULLSCREEN, CV_WINDOW_FULLSCREEN);
    } else {
