@@ -21,4 +21,3 @@ void pull_crnn_layer(layer l);
 #endif
 
 #endif
-

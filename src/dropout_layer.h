@@ -10,7 +10,7 @@ dropout_layer make_dropout_layer(int batch, int inputs, float probability);
 
 void forward_dropout_layer(dropout_layer l, network_state state);
 void backward_dropout_layer(dropout_layer l, network_state state);
-void resize_dropout_layer(dropout_layer *l, int inputs);
+void resize_dropout_layer(dropout_layer* l, int inputs);
 
 #ifdef GPU
 void forward_dropout_layer_gpu(dropout_layer l, network_state state);

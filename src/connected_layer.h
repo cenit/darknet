@@ -24,4 +24,3 @@ void pull_connected_layer(connected_layer layer);
 #endif
 
 #endif
-
