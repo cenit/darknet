@@ -75,8 +75,6 @@ if(OPENMP_FOUND)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
-find_package(JPEG REQUIRED)
-
 list(APPEND DARKNET_SOURCE_FILES
   ${CMAKE_SOURCE_DIR}/examples/art.c
   ${CMAKE_SOURCE_DIR}/examples/attention.c
@@ -245,14 +243,12 @@ include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
 target_link_libraries(darknet_lib
-  ${JPEG_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
 add_executable(darknet ${DARKNET_SOURCE_FILES} ${DARKNET_HEADER_FILES})
 target_link_libraries(darknet
   darknet_lib
-  ${JPEG_LIBRARY}
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
