@@ -44,12 +44,14 @@ find_package(CUDA)
 if(CUDA_FOUND)
   add_definitions(-DGPU)
   include_directories(${CUDA_INCLUDE_DIRS})
+  list(APPEND CUDA_NVCC_FLAGS "-Xcompiler -fPIC")
+  list(APPEND CUDA_NVCC_FLAGS "-O3")
+  list(APPEND CUDA_NVCC_FLAGS "-gencode arch=compute_62,code=[sm_62,compute_62]")
 else()
   if(MSVC)
     set(CUDA_ADDITIONAL_BUILD_FILE ${CMAKE_SOURCE_DIR}/src/cuda.c)
   endif()
 endif()
-
 
 find_package(CUDNN)
 if(CUDNN_FOUND)
@@ -278,6 +280,11 @@ if(CUDNN_FOUND)
   target_link_libraries(darknet
     ${CUDNN_LIBRARY}
   )
+  if(CUDA_FOUND)
+    target_link_libraries(darknet_cuda
+      ${CUDNN_LIBRARY}
+    )
+  endif()
 endif()
 
 if(OpenCV_FOUND)
@@ -287,6 +294,11 @@ if(OpenCV_FOUND)
   target_link_libraries(darknet
     ${OpenCV_LIBRARIES}
   )
+  if(CUDA_FOUND)
+    target_link_libraries(darknet_cuda
+      ${OpenCV_LIBRARIES}
+    )
+  endif()
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX)
@@ -296,6 +308,11 @@ if(CMAKE_COMPILER_IS_GNUCXX)
   target_link_libraries(darknet
     m
   )
+  if(CUDA_FOUND)
+    target_link_libraries(darknet_cuda
+      m
+    )
+  endif()
 endif()
 
 if(MSVC)
@@ -309,4 +326,11 @@ if(MSVC)
     wsock32
     ws2_32
   )
+  if(CUDA_FOUND)
+    target_link_libraries(darknet_cuda
+      ${PTHREADS_LIBRARIES}
+      wsock32
+      ws2_32
+    )
+  endif()
 endif()
