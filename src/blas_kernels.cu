@@ -124,7 +124,7 @@ __global__ void dot_kernel(float *output, float scale, int batch, int n, int siz
     int f1 = index / n;
     int f2 = index % n;
     if (f2 <= f1) return;
-
+    
     float sum = 0;
     float norm1 = 0;
     float norm2 = 0;
@@ -167,7 +167,7 @@ __global__ void adam_kernel(int N, float *x, float *m, float *v, float B1, float
 
     float mhat = m[index] / (1.f - powf(B1, t));
     float vhat = v[index] / (1.f - powf(B2, t));
-
+    
     x[index] = x[index] + rate * mhat / (sqrtf(vhat) + eps);
 }
 
@@ -196,7 +196,7 @@ __global__ void normalize_kernel(int N, float *x, float *mean, float *variance, 
     int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if (index >= N) return;
     int f = (index/spatial)%filters;
-
+    
     x[index] = (x[index] - mean[f])/(sqrtf(variance[f] + .00001f));
 }
 
@@ -205,7 +205,7 @@ __global__ void normalize_delta_kernel(int N, float *x, float *mean, float *vari
     int index = (blockIdx.x + blockIdx.y*gridDim.x) * blockDim.x + threadIdx.x;
     if (index >= N) return;
     int f = (index/spatial)%filters;
-
+    
     delta[index] = delta[index] * 1.f/(sqrtf(variance[f] + .00001f)) + variance_delta[f] * 2.f * (x[index] - mean[f]) / (spatial * batch) + mean_delta[f]/(spatial*batch);
 }
 
