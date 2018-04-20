@@ -245,6 +245,7 @@ add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
 target_link_libraries(darknet_lib
   ${CMAKE_THREAD_LIBS_INIT}
 )
+set_property(TARGET darknet_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_executable(darknet ${DARKNET_SOURCE_FILES} ${DARKNET_HEADER_FILES})
 target_link_libraries(darknet
@@ -260,6 +261,8 @@ if(CUDA_FOUND)
     ${CUDA_CUBLAS_LIBRARIES}
     ${CUDA_curand_LIBRARY}
   )
+  set_property(TARGET darknet_cuda PROPERTY POSITION_INDEPENDENT_CODE ON)
+
   target_link_libraries(darknet
     darknet_cuda
     ${CUDA_LIBRARIES}
