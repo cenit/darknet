@@ -1,6 +1,5 @@
 cmake_minimum_required(VERSION 3.1)
-set(CMAKE_CXX_STANDARD 11)
-project(darknet)
+project(darknet C CXX)
 
 if(EXISTS "$ENV{WORKSPACE}/sysconfig/cmake/physycom_config.cmake")
    message(STATUS "Enabling physycom settings")
@@ -24,6 +23,11 @@ endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
   add_compile_options(-Wno-unused-result)
+  foreach(flag ${CMAKE_C_FLAGS})
+    if(${flag} MATCHES "-O*")
+      string(REGEX REPLACE "-O*" "-Ofast" ${flag} "${${flag}}")
+    endif()
+  endforeach()
 endif()
 
 if(APPLE)
@@ -74,7 +78,6 @@ find_package(OpenMP)
 if(OPENMP_FOUND)
   add_definitions(-DOPENMP)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
 endif()
 
 list(APPEND DARKNET_SOURCE_FILES
@@ -238,11 +241,6 @@ file(GLOB CUDA_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.cu)
 include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
-#add_library(darknet_lib STATIC ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
-#target_link_libraries(darknet_lib
-#  ${CMAKE_THREAD_LIBS_INIT}
-#)
-
 add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
 target_link_libraries(darknet_lib
   ${CMAKE_THREAD_LIBS_INIT}
@@ -251,6 +249,12 @@ set_property(TARGET darknet_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_executable(darknet ${DARKNET_SOURCE_FILES} ${DARKNET_HEADER_FILES})
 target_link_libraries(darknet
+  darknet_lib
+  ${CMAKE_THREAD_LIBS_INIT}
+)
+
+add_executable(darkphysycom examples/darkphysycom.c examples/detector.c)
+target_link_libraries(darkphysycom
   darknet_lib
   ${CMAKE_THREAD_LIBS_INIT}
 )
@@ -271,6 +275,13 @@ if(CUDA_FOUND)
     ${CUDA_CUBLAS_LIBRARIES}
     ${CUDA_curand_LIBRARY}
   )
+
+  target_link_libraries(darkphysycom
+    darknet_cuda
+    ${CUDA_LIBRARIES}
+    ${CUDA_CUBLAS_LIBRARIES}
+    ${CUDA_curand_LIBRARY}
+  )
 endif()
 
 if(CUDNN_FOUND)
@@ -278,6 +289,9 @@ if(CUDNN_FOUND)
     ${CUDNN_LIBRARY}
   )
   target_link_libraries(darknet
+    ${CUDNN_LIBRARY}
+  )
+  target_link_libraries(darkphysycom
     ${CUDNN_LIBRARY}
   )
   if(CUDA_FOUND)
@@ -294,6 +308,9 @@ if(OpenCV_FOUND)
   target_link_libraries(darknet
     ${OpenCV_LIBRARIES}
   )
+  target_link_libraries(darkphysycom
+    ${OpenCV_LIBRARIES}
+  )
   if(CUDA_FOUND)
     target_link_libraries(darknet_cuda
       ${OpenCV_LIBRARIES}
@@ -301,11 +318,14 @@ if(OpenCV_FOUND)
   endif()
 endif()
 
-if(CMAKE_COMPILER_IS_GNUCXX)
+if(CMAKE_COMPILER_IS_GNUCC)
   target_link_libraries(darknet_lib
     m
   )
   target_link_libraries(darknet
+    m
+  )
+  target_link_libraries(darkphysycom
     m
   )
   if(CUDA_FOUND)
@@ -326,6 +346,11 @@ if(MSVC)
     wsock32
     ws2_32
   )
+  target_link_libraries(darkphysycom
+    ${PTHREADS_LIBRARIES}
+    wsock32
+    ws2_32
+  )
   if(CUDA_FOUND)
     target_link_libraries(darknet_cuda
       ${PTHREADS_LIBRARIES}
@@ -333,4 +358,10 @@ if(MSVC)
       ws2_32
     )
   endif()
+endif()
+
+install(TARGETS darknet darkphysycom darknet_lib DESTINATION ${CMAKE_SOURCE_DIR})
+
+if(CUDA_FOUND)
+  install(TARGETS darknet_cuda DESTINATION ${CMAKE_SOURCE_DIR})
 endif()
