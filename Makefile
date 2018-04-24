@@ -1,5 +1,5 @@
-GPU=0
-CUDNN=0
+GPU=1
+CUDNN=1
 OPENCV=1
 OPENMP=1
 DEBUG=0
@@ -14,7 +14,7 @@ DEBUG=0
 # ARCH= -gencode arch=compute_52,code=compute_52
 
 # This is the best choice for Jetson TX2
-# ARCH= -gencode arch=compute_62,code=[sm_62,compute_62]
+ARCH= -gencode arch=compute_62,code=[sm_62,compute_62]
 
 VPATH=./src/:./examples
 SLIB=libdarknet.so

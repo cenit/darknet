@@ -247,7 +247,9 @@ target_link_libraries(darknet
   ${CMAKE_THREAD_LIBS_INIT}
 )
 
-add_executable(darkphysycom examples/darkphysycom.c examples/detector.c)
+include(${CMAKE_SOURCE_DIR}/physycom/peoplebox.cmakevars)
+configure_file(${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h.in ${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h)
+add_executable(darkphysycom ${CMAKE_SOURCE_DIR}/physycom/darkphysycom.c)
 target_link_libraries(darkphysycom
   darknet_lib
   ${CMAKE_THREAD_LIBS_INIT}

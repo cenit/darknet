@@ -1,0 +1,4 @@
+set(PEOPLEBOX_ID "lab_physycom")
+set(ROI_ID "nico_desktop")
+set(DETECTION_TYPE "crowd")
+set(SW_VERSION 100)
