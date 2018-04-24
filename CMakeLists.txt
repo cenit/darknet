@@ -10,8 +10,6 @@ endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake/Modules/" ${CMAKE_MODULE_PATH})
 
-include(CheckFunctionExists)
-
 if(MSVC)
   add_compile_options(/wd4244)
   add_compile_options(/wd4267)
@@ -41,7 +39,6 @@ if(OpenCV_FOUND)
 endif()
 
 find_package(CUDA)
-
 if(CUDA_FOUND)
   add_definitions(-DGPU)
   include_directories(${CUDA_INCLUDE_DIRS})
@@ -60,7 +57,6 @@ endif()
 
 set(CMAKE_THREAD_PREFER_PTHREAD ON)
 find_package(Threads REQUIRED)
-
 if(MSVC)
   find_package(pthreads_windows REQUIRED)
   include_directories(${PTHREADS_INCLUDE_DIR})
@@ -236,128 +232,106 @@ include_directories(${CMAKE_SOURCE_DIR}/src)
 include_directories(${CMAKE_SOURCE_DIR}/include)
 
 add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
-target_link_libraries(darknet_lib
-  ${CMAKE_THREAD_LIBS_INIT}
-)
+target_link_libraries(darknet_lib ${CMAKE_THREAD_LIBS_INIT})
 set_property(TARGET darknet_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
 
 add_executable(darknet ${DARKNET_SOURCE_FILES} ${DARKNET_HEADER_FILES})
-target_link_libraries(darknet
-  darknet_lib
-  ${CMAKE_THREAD_LIBS_INIT}
-)
+target_link_libraries(darknet darknet_lib ${CMAKE_THREAD_LIBS_INIT})
 
+# physycom
 include(${CMAKE_SOURCE_DIR}/physycom/peoplebox.cmakevars)
 configure_file(${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h.in ${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h)
-add_executable(darkphysycom ${CMAKE_SOURCE_DIR}/physycom/darkphysycom.c)
-target_link_libraries(darkphysycom
-  darknet_lib
-  ${CMAKE_THREAD_LIBS_INIT}
+
+list(APPEND physycom_exe 
+  darkcrowd 
+  darktrack
 )
+
+list(APPEND darkcrowd_src ${CMAKE_SOURCE_DIR}/physycom/darkcrowd.c)
+list(APPEND darktrack_src ${CMAKE_SOURCE_DIR}/physycom/darktrack.c)
+list(APPEND physycom_src 
+  darkcrowd_src
+  darktrack_src
+)
+
+list(LENGTH physycom_exe physycom_len1)
+math(EXPR physycom_len physycom_len1)
+
+foreach(i RANGE ${physycom_len})
+  list(GET physycom_exe ${i} exe)
+  list(GET physycom_src ${i} src)
+  add_executable(${exe} ${${src}})  
+  target_link_libraries(${exe} darknet_lib ${CMAKE_THREAD_LIBS_INIT})
+endforeach()
 
 if(CUDA_FOUND)
   CUDA_ADD_LIBRARY(darknet_cuda STATIC ${CUDA_SOURCE_FILES})
-  target_link_libraries(darknet_lib
-    darknet_cuda
-    ${CUDA_LIBRARIES}
-    ${CUDA_CUBLAS_LIBRARIES}
-    ${CUDA_curand_LIBRARY}
-  )
+  target_link_libraries(darknet_lib darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
   set_property(TARGET darknet_cuda PROPERTY POSITION_INDEPENDENT_CODE ON)
-
-  target_link_libraries(darknet
-    darknet_cuda
-    ${CUDA_LIBRARIES}
-    ${CUDA_CUBLAS_LIBRARIES}
-    ${CUDA_curand_LIBRARY}
-  )
-
-  target_link_libraries(darkphysycom
-    darknet_cuda
-    ${CUDA_LIBRARIES}
-    ${CUDA_CUBLAS_LIBRARIES}
-    ${CUDA_curand_LIBRARY}
-  )
+  target_link_libraries(darknet   darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
+  
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})  
+  endforeach()
 endif()
 
 if(CUDNN_FOUND)
-  target_link_libraries(darknet_lib
-    ${CUDNN_LIBRARY}
-  )
-  target_link_libraries(darknet
-    ${CUDNN_LIBRARY}
-  )
-  target_link_libraries(darkphysycom
-    ${CUDNN_LIBRARY}
-  )
+  target_link_libraries(darknet_lib ${CUDNN_LIBRARY})
+  target_link_libraries(darknet     ${CUDNN_LIBRARY})
   if(CUDA_FOUND)
-    target_link_libraries(darknet_cuda
-      ${CUDNN_LIBRARY}
-    )
+    target_link_libraries(darknet_cuda ${CUDNN_LIBRARY})
   endif()
+  
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} ${CUDNN_LIBRARY})  
+  endforeach()
 endif()
 
 if(OpenCV_FOUND)
-  target_link_libraries(darknet_lib
-    ${OpenCV_LIBRARIES}
-  )
-  target_link_libraries(darknet
-    ${OpenCV_LIBRARIES}
-  )
-  target_link_libraries(darkphysycom
-    ${OpenCV_LIBRARIES}
-  )
+  target_link_libraries(darknet_lib ${OpenCV_LIBRARIES})
+  target_link_libraries(darknet     ${OpenCV_LIBRARIES})
   if(CUDA_FOUND)
-    target_link_libraries(darknet_cuda
-      ${OpenCV_LIBRARIES}
-    )
+    target_link_libraries(darknet_cuda ${OpenCV_LIBRARIES})
   endif()
+  
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} ${OpenCV_LIBRARIES})  
+  endforeach()
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
-  target_link_libraries(darknet_lib
-    m
-  )
-  target_link_libraries(darknet
-    m
-  )
-  target_link_libraries(darkphysycom
-    m
-  )
+  target_link_libraries(darknet_lib m)
+  target_link_libraries(darknet     m)
   if(CUDA_FOUND)
-    target_link_libraries(darknet_cuda
-      m
-    )
+    target_link_libraries(darknet_cuda m)
   endif()
+
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} m)  
+  endforeach()
 endif()
 
 if(MSVC)
-  target_link_libraries(darknet_lib
-    ${PTHREADS_LIBRARIES}
-    wsock32
-    ws2_32
-  )
-  target_link_libraries(darknet
-    ${PTHREADS_LIBRARIES}
-    wsock32
-    ws2_32
-  )
-  target_link_libraries(darkphysycom
-    ${PTHREADS_LIBRARIES}
-    wsock32
-    ws2_32
-  )
+  target_link_libraries(darknet_lib ${PTHREADS_LIBRARIES} wsock32 ws2_32)
+  target_link_libraries(darknet     ${PTHREADS_LIBRARIES} wsock32 ws2_32)
   if(CUDA_FOUND)
-    target_link_libraries(darknet_cuda
-      ${PTHREADS_LIBRARIES}
-      wsock32
-      ws2_32
-    )
+    target_link_libraries(darknet_cuda ${PTHREADS_LIBRARIES} wsock32 ws2_32)
   endif()
+
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} ${PTHREADS_LIBRARIES} wsock32 ws2_32)  
+  endforeach()
 endif()
 
-install(TARGETS darknet darkphysycom darknet_lib DESTINATION ${CMAKE_SOURCE_DIR})
-
+install(TARGETS darknet_lib darknet DESTINATION ${CMAKE_SOURCE_DIR})
 if(CUDA_FOUND)
   install(TARGETS darknet_cuda DESTINATION ${CMAKE_SOURCE_DIR})
 endif()
+# physycom
+install(TARGETS ${physycom_exe} DESTINATION ${CMAKE_SOURCE_DIR})
+

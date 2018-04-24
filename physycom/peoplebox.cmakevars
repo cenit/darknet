@@ -1,4 +1,6 @@
 set(PEOPLEBOX_ID "lab_physycom")
 set(ROI_ID "nico_desktop")
-set(DETECTION_TYPE "crowd")
-set(SW_VERSION 100)
+set(DETECTION_TYPE_CROWD "crowd")
+set(DETECTION_TYPE_TRACK "tracking")
+set(SW_VER_CROWD 100)
+set(SW_VER_TRACK 200)

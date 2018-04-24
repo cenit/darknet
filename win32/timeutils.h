@@ -19,8 +19,8 @@
   } while (0)
 #endif // timersub
 
-static BOOL g_first_time = 1;
-static LARGE_INTEGER g_counts_per_sec;
+static unsigned char g_first_time = 1;
+static long long int g_counts_per_sec;
 
 int gettimeofday(struct timeval*, struct timezone*);
 int clock_gettime(int, struct timespec*);

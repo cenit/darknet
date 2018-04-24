@@ -31,7 +31,10 @@ Icon?
 Thumbs.db
 *.swp
 
+log.txt
+
 build/
+build_debug/
 bin/
 .vs/
 .vscode/

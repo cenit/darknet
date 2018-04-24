@@ -8,3 +8,4 @@ rm -f libdarknet.*
 
 rm -rf bin obj
 rm -rf build
+rm -rf build_debug
