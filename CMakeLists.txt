@@ -68,10 +68,6 @@ endif()
 find_package(OpenMP)
 if(OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
-  if(APPLE AND CMAKE_COMPILER_IS_GNUCC)
-    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")
-    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp")
-  endif()
 endif()
 
 list(APPEND DARKNET_SOURCE_FILES
@@ -303,6 +299,19 @@ if(OpenCV_FOUND)
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
     target_link_libraries(${exe} ${OpenCV_LIBRARIES})
+  endforeach()
+endif()
+
+if(OPENMP_FOUND)
+  target_link_libraries(darknet_lib OpenMP::OpenMP_C)
+  target_link_libraries(darknet     OpenMP::OpenMP_C)
+  if(CUDA_FOUND)
+    target_link_libraries(darknet_cuda OpenMP::OpenMP_C)
+  endif()
+
+  # physycom
+  foreach(${exe} IN LISTS ${physycom_exe})
+    target_link_libraries(${exe} OpenMP::OpenMP_C)
   endforeach()
 endif()
 

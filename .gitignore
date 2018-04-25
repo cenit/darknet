@@ -36,6 +36,7 @@ log.txt
 build/
 build_debug/
 bin/
+output/
 .vs/
 .vscode/
 *.weights
