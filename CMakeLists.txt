@@ -68,6 +68,10 @@ endif()
 find_package(OpenMP)
 if(OPENMP_FOUND)
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${OpenMP_C_FLAGS}")
+  if(APPLE AND CMAKE_COMPILER_IS_GNUCC)
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fopenmp")
+    set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fopenmp")
+  endif()
 endif()
 
 list(APPEND DARKNET_SOURCE_FILES
@@ -242,14 +246,14 @@ target_link_libraries(darknet darknet_lib ${CMAKE_THREAD_LIBS_INIT})
 include(${CMAKE_SOURCE_DIR}/physycom/peoplebox.cmakevars)
 configure_file(${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h.in ${CMAKE_SOURCE_DIR}/physycom/peoplebox_params.h)
 
-list(APPEND physycom_exe 
-  darkcrowd 
+list(APPEND physycom_exe
+  darkcrowd
   darktrack
 )
 
 list(APPEND darkcrowd_src ${CMAKE_SOURCE_DIR}/physycom/darkcrowd.c)
 list(APPEND darktrack_src ${CMAKE_SOURCE_DIR}/physycom/darktrack.c)
-list(APPEND physycom_src 
+list(APPEND physycom_src
   darkcrowd_src
   darktrack_src
 )
@@ -260,7 +264,7 @@ math(EXPR physycom_len physycom_len1)
 foreach(i RANGE ${physycom_len})
   list(GET physycom_exe ${i} exe)
   list(GET physycom_src ${i} src)
-  add_executable(${exe} ${${src}})  
+  add_executable(${exe} ${${src}})
   target_link_libraries(${exe} darknet_lib ${CMAKE_THREAD_LIBS_INIT})
 endforeach()
 
@@ -269,10 +273,10 @@ if(CUDA_FOUND)
   target_link_libraries(darknet_lib darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
   set_property(TARGET darknet_cuda PROPERTY POSITION_INDEPENDENT_CODE ON)
   target_link_libraries(darknet   darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
-  
+
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
-    target_link_libraries(${exe} darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})  
+    target_link_libraries(${exe} darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
   endforeach()
 endif()
 
@@ -282,10 +286,10 @@ if(CUDNN_FOUND)
   if(CUDA_FOUND)
     target_link_libraries(darknet_cuda ${CUDNN_LIBRARY})
   endif()
-  
+
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
-    target_link_libraries(${exe} ${CUDNN_LIBRARY})  
+    target_link_libraries(${exe} ${CUDNN_LIBRARY})
   endforeach()
 endif()
 
@@ -295,10 +299,10 @@ if(OpenCV_FOUND)
   if(CUDA_FOUND)
     target_link_libraries(darknet_cuda ${OpenCV_LIBRARIES})
   endif()
-  
+
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
-    target_link_libraries(${exe} ${OpenCV_LIBRARIES})  
+    target_link_libraries(${exe} ${OpenCV_LIBRARIES})
   endforeach()
 endif()
 
@@ -311,7 +315,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
-    target_link_libraries(${exe} m)  
+    target_link_libraries(${exe} m)
   endforeach()
 endif()
 
@@ -324,7 +328,7 @@ if(MSVC)
 
   # physycom
   foreach(${exe} IN LISTS ${physycom_exe})
-    target_link_libraries(${exe} ${PTHREADS_LIBRARIES} wsock32 ws2_32)  
+    target_link_libraries(${exe} ${PTHREADS_LIBRARIES} wsock32 ws2_32)
   endforeach()
 endif()
 

@@ -42,3 +42,6 @@ bin/
 libdarknet*
 
 darkphysycom
+darkcrowd
+darktrack
+physycom/peoplebox_params.h
