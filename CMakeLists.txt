@@ -256,7 +256,6 @@ list(APPEND physycom_src
 
 list(LENGTH physycom_exe physycom_len1)
 math(EXPR physycom_len physycom_len1)
-
 foreach(i RANGE ${physycom_len})
   list(GET physycom_exe ${i} exe)
   list(GET physycom_src ${i} src)
@@ -302,7 +301,7 @@ if(OpenCV_FOUND)
   endforeach()
 endif()
 
-if(OPENMP_FOUND)
+if(OPENMP_FOUND AND APPLE)
   target_link_libraries(darknet_lib OpenMP::OpenMP_C)
   target_link_libraries(darknet     OpenMP::OpenMP_C)
   if(CUDA_FOUND)
