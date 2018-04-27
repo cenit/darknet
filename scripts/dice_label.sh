@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mkdir -p images
 mkdir -p images/orig
 mkdir -p images/train
