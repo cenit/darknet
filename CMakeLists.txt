@@ -1,5 +1,13 @@
 cmake_minimum_required(VERSION 3.1)
-project(darknet C CXX)
+project(darknet)
+
+enable_language(C)
+set (CMAKE_C_STANDARD 11)
+
+# C++ is required for CUDA activation, building and linking, if CUDA was not necessary C++ could be completely removed
+enable_language(CXX)
+set (CMAKE_CXX_STANDARD 14)
+
 
 if(EXISTS "$ENV{WORKSPACE}/sysconfig/cmake/physycom_config.cmake")
    message(STATUS "Enabling physycom settings")
@@ -16,7 +24,10 @@ if(MSVC)
   add_compile_options(/wd4305)
   add_compile_options(/wd4477)
   add_compile_options(/wd4996)
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRTD")
+  #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+  find_package(LibLZMA)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -31,6 +42,7 @@ else()
 endif()
 
 if(OpenCV_FOUND)
+  message(STATUS "OpenCV found: ${OpenCV_INCLUDE_DIRS}")
   add_definitions(-DOPENCV)
   include_directories(${OpenCV_INCLUDE_DIRS})
 endif()
@@ -42,7 +54,7 @@ if(CUDA_FOUND)
   set(CUDA_NVCC_FLAGS "-gencode arch=compute_62,code=[sm_62,compute_62] --compiler-options \"-Wall -Wno-unused-result -Wno-unknown-pragmas -Wfatal-errors -fPIC -fopenmp -Ofast -DOPENCV -DGPU -DCUDNN\"")
 else()
   if(MSVC)
-    set(CUDA_ADDITIONAL_BUILD_FILE ${CMAKE_SOURCE_DIR}/src/cuda.c)
+    set(CUDA_ADDITIONAL_BUILD_FILE ${CMAKE_CURRENT_LIST_DIR}/src/cuda.c)
   endif()
 endif()
 
@@ -196,12 +208,10 @@ if(MSVC)
   list(APPEND DARKNET_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/win32/gettimeofday.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/clock_gettime.c
-    ${CMAKE_CURRENT_LIST_DIR}/win32/cvround.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.c
   )
   list(APPEND DARKNET_HEADER_FILES
     ${CMAKE_CURRENT_LIST_DIR}/include/darknet.h
-    ${CMAKE_CURRENT_LIST_DIR}/win32/cvround.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/timeutils.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/unistd.h
@@ -209,11 +219,9 @@ if(MSVC)
   list(APPEND YOLO_SOURCE_FILES
     ${CMAKE_CURRENT_LIST_DIR}/win32/gettimeofday.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/clock_gettime.c
-    ${CMAKE_CURRENT_LIST_DIR}/win32/cvround.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.c
   )
   list(APPEND YOLO_HEADER_FILES
-    ${CMAKE_CURRENT_LIST_DIR}/win32/cvround.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/timeutils.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/unistd.h
@@ -224,6 +232,7 @@ file(GLOB CUDA_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.cu)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
+include_directories(${CMAKE_CURRENT_LIST_DIR}/win32)
 
 add_library(darknet_lib SHARED ${YOLO_SOURCE_FILES} ${YOLO_HEADER_FILES})
 set_property(TARGET darknet_lib PROPERTY POSITION_INDEPENDENT_CODE ON)
@@ -253,7 +262,7 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 if(MSVC)
-  list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32)
+  list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32 ${LIBLZMA_LIBRARY})
 endif()
 
 target_link_libraries(darknet_lib ${linked_libs})
@@ -266,4 +275,3 @@ install(TARGETS darknet_lib darknet DESTINATION ${CMAKE_CURRENT_LIST_DIR})
 if(CUDA_FOUND)
   install(TARGETS darknet_cuda DESTINATION ${CMAKE_CURRENT_LIST_DIR})
 endif()
-

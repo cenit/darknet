@@ -36,7 +36,6 @@ extern int gpu_index;
 #endif
 
 #ifdef _WIN32
-#include <cvround.h>
 #define popen _popen
 #define pclose _pclose
 #define sleep(x) Sleep(x)
