@@ -85,7 +85,7 @@ void resize_cost_layer(cost_layer* l, int inputs)
 #endif
 }
 
-void forward_cost_layer(cost_layer l, network net)
+void forward_cost_layer(const cost_layer l, network net)
 {
   if (!net.truth)
     return;

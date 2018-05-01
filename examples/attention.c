@@ -183,7 +183,7 @@ void train_attention(char* datacfg, char* cfgfile, char* weightfile, int* gpus, 
     }
     free_data(best);
     printf("\n");
-    image im = float_to_image(64, 64, 3, resized.X.vals[0]);
+    //image im = float_to_image(64, 64, 3, resized.X.vals[0]);
     //show_image(im, "orig");
     //cvWaitKey(100);
     /*

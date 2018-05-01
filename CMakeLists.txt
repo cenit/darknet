@@ -27,7 +27,7 @@ if(MSVC)
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRTD")
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-  find_package(LibLZMA)
+  #find_package(LibLZMA)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -261,7 +261,8 @@ if(CMAKE_COMPILER_IS_GNUCC)
 endif()
 
 if(MSVC)
-  list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32 ${LIBLZMA_LIBRARY})
+  list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32)
+  #list(APPEND linked_libs ${LIBLZMA_LIBRARY})
 endif()
 
 target_link_libraries(darknet_lib ${linked_libs})
