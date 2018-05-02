@@ -41,8 +41,4 @@ output/
 .vscode/
 *.weights
 libdarknet*
-
-darkphysycom
-darkcrowd
-darktrack
-physycom/peoplebox_params.h
+darknet_lib.*
