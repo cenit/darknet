@@ -27,7 +27,6 @@ if(MSVC)
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRTD")
   #set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} /NODEFAULTLIB:MSVCRT")
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
-  #find_package(LibLZMA)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCC)
@@ -51,7 +50,11 @@ find_package(CUDA)
 if(CUDA_FOUND)
   add_definitions(-DGPU)
   include_directories(${CUDA_INCLUDE_DIRS})
-  set(CUDA_NVCC_FLAGS "-gencode arch=compute_62,code=[sm_62,compute_62] --compiler-options \"-Wall -Wno-unused-result -Wno-unknown-pragmas -Wfatal-errors -fPIC -fopenmp -Ofast -DOPENCV -DGPU -DCUDNN\"")
+  if (MSVC)
+    set(CUDA_NVCC_FLAGS "-gencode arch=compute_62,code=[sm_62,compute_62] --compiler-options /DGPU ")
+  else()
+    set(CUDA_NVCC_FLAGS "-gencode arch=compute_62,code=[sm_62,compute_62] --compiler-options \"-Wall -Wno-unused-result -Wno-unknown-pragmas -Wfatal-errors -fPIC -fopenmp -Ofast -DOPENCV -DGPU -DCUDNN\"")
+  endif()
 else()
   if(MSVC)
     set(CUDA_ADDITIONAL_BUILD_FILE ${CMAKE_CURRENT_LIST_DIR}/src/cuda.c)
@@ -206,11 +209,13 @@ list(APPEND YOLO_HEADER_FILES
 
 if(MSVC)
   list(APPEND DARKNET_SOURCE_FILES
+    ${YOLO_SOURCE_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/win32/gettimeofday.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/clock_gettime.c
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.c
   )
   list(APPEND DARKNET_HEADER_FILES
+    ${YOLO_HEADER_FILES}
     ${CMAKE_CURRENT_LIST_DIR}/include/darknet.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/getopt.h
     ${CMAKE_CURRENT_LIST_DIR}/win32/timeutils.h
@@ -228,7 +233,7 @@ if(MSVC)
   )
 endif()
 
-file(GLOB CUDA_SOURCE_FILES ${CMAKE_SOURCE_DIR}/src/*.cu)
+file(GLOB CUDA_SOURCE_FILES ${CMAKE_CURRENT_LIST_DIR}/src/*.cu)
 
 include_directories(${CMAKE_CURRENT_LIST_DIR}/src)
 include_directories(${CMAKE_CURRENT_LIST_DIR}/include)
@@ -240,7 +245,8 @@ add_executable(darknet ${DARKNET_SOURCE_FILES} ${DARKNET_HEADER_FILES})
 list(APPEND linked_libs ${CMAKE_THREAD_LIBS_INIT})
 if(CUDA_FOUND)
   CUDA_ADD_LIBRARY(darknet_cuda STATIC ${CUDA_SOURCE_FILES})
-  list(APPEND linked_libs darknet_cuda ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
+  list(APPEND linked_libs ${CUDA_LIBRARIES} ${CUDA_CUBLAS_LIBRARIES} ${CUDA_curand_LIBRARY})
+  list(APPEND additional_linked_libs darknet_cuda)
   set_property(TARGET darknet_cuda PROPERTY POSITION_INDEPENDENT_CODE ON)
 endif()
 
@@ -262,13 +268,17 @@ endif()
 
 if(MSVC)
   list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32)
-  #list(APPEND linked_libs ${LIBLZMA_LIBRARY})
 endif()
 
-target_link_libraries(darknet_lib ${linked_libs})
-target_link_libraries(darknet     darknet_lib ${linked_libs})
 if(CUDA_FOUND)
   target_link_libraries(darknet_cuda ${linked_libs})
+endif()
+
+target_link_libraries(darknet_lib ${linked_libs} ${additional_linked_libs})
+if(MSVC)
+  target_link_libraries(darknet ${linked_libs} ${additional_linked_libs})
+else()
+  target_link_libraries(darknet darknet_lib ${linked_libs} ${additional_linked_libs})
 endif()
 
 install(TARGETS darknet_lib DESTINATION ${CMAKE_CURRENT_LIST_DIR})
