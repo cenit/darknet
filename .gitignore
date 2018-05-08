@@ -18,6 +18,8 @@ submission/
 cfg/
 darknet
 darknet.exe
+darknet_lib.lib
+darknet_lib.dll
 libdarknet.a
 libdarknet.so
 darknet.lib
@@ -40,5 +42,3 @@ output/
 .vs/
 .vscode/
 *.weights
-libdarknet*
-darknet_lib.*
