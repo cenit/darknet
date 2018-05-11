@@ -22,6 +22,7 @@ darknet_lib.lib
 darknet_lib.dll
 libdarknet.a
 libdarknet.so
+libdarknet_lib.dylib
 darknet.lib
 darknet.dll
 .fuse*
