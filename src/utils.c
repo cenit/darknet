@@ -1,3 +1,4 @@
+#include "utils.h"
 #include <assert.h>
 #include <float.h>
 #include <limits.h>
@@ -7,10 +8,11 @@
 #include <string.h>
 #include <time.h>
 #include <unistd.h>
-#ifdef _WIN32
+#ifndef _WIN32
+#include <sys/time.h>
+#else
 #include "timeutils.h"
 #endif
-#include "utils.h"
 
 /*
 // old timing. is it better? who knows!!

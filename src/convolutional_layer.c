@@ -7,7 +7,9 @@
 #include "utils.h"
 #include <stdio.h>
 #include <time.h>
-#ifdef _WIN32
+#ifndef _WIN32
+#include <sys/time.h>
+#else
 #include "timeutils.h"
 #endif
 

@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "timeutils.h"
 
 int clock_gettime(int dummy, struct timespec* ct)
@@ -21,3 +22,4 @@ int clock_gettime(int dummy, struct timespec* ct)
 
   return 0;
 }
+#endif

@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #include "timeutils.h"
 
 int gettimeofday(struct timeval* tp, struct timezone* tzp)
@@ -20,3 +21,4 @@ int gettimeofday(struct timeval* tp, struct timezone* tzp)
   tp->tv_usec = (long)(system_time.wMilliseconds * 1000);
   return 0;
 }
+#endif

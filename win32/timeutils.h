@@ -1,3 +1,4 @@
+#ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include <Winsock2.h>
@@ -24,3 +25,4 @@ static LARGE_INTEGER g_counts_per_sec;
 
 int gettimeofday(struct timeval*, struct timezone*);
 int clock_gettime(int, struct timespec*);
+#endif

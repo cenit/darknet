@@ -1,4 +1,4 @@
-
+#ifdef _WIN32
 #include <getopt.h>
 
 #ifdef __cplusplus
@@ -494,4 +494,5 @@ int getopt_long_only(int nargc, char* const* nargv, const char* options,
 
 #ifdef __cplusplus
 }
+#endif
 #endif
