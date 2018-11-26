@@ -306,6 +306,10 @@ if(CMAKE_COMPILER_IS_GNUCC)
   list(APPEND linked_libs m)
 endif()
 
+if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+  list(APPEND linked_libs m)
+endif()
+
 if(MSVC)
   list(APPEND linked_libs ${PTHREADS_LIBRARIES} wsock32 ws2_32)
 endif()

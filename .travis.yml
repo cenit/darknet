@@ -7,7 +7,7 @@ matrix:
       compiler: gcc
       name: macOS - gcc@5
       env:
-        - MATRIX_EVAL="brew update && && brew install gcc@5 gcc opencv opencv@2 && brew upgrade cmake && CC=gcc-5 && CXX=g++-5"
+        - MATRIX_EVAL="brew update && brew install gcc@5 gcc opencv opencv@2 && brew upgrade cmake && CC=gcc-5 && CXX=g++-5"
 
     - os: osx
       compiler: gcc

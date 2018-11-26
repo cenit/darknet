@@ -27,6 +27,7 @@ libdarknet.so
 libdarknet_lib.dylib
 libdarknet_lib.so
 libdarklib.so
+libdarklib.dylib
 darknet.lib
 darknet.dll
 darklib.lib
