@@ -7,10 +7,10 @@ environment:
     VCPKG_ROOT: C:\projects\vcpkg
     VCPKG_DEFAULT_TRIPLET: x64-windows-physycom
     matrix:
-    - platform: Cygwin64
-      COMPILER: cygwin
-      CYGWIN_NOWINPATH: yes
-      CYGSH: C:\cygwin64\bin\bash -c
+    #- platform: Cygwin64
+    #  COMPILER: cygwin
+    #  CYGWIN_NOWINPATH: yes
+    #  CYGSH: C:\cygwin64\bin\bash -c
     - platform: Win64
       COMPILER: vs
 
