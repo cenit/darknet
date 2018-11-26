@@ -18,14 +18,19 @@ submission/
 cfg/
 darknet
 darknet.exe
+uselib
+uselib.exe
 darknet_lib.lib
 darknet_lib.dll
 libdarknet.a
 libdarknet.so
 libdarknet_lib.dylib
 libdarknet_lib.so
+libdarklib.so
 darknet.lib
 darknet.dll
+darklib.lib
+darklib.dll
 .fuse*
 
 # OS Generated #
@@ -38,9 +43,12 @@ Thumbs.db
 log.txt
 
 build/
+build_win/
 build_debug/
 bin/
 output/
 .vs/
 .vscode/
 *.weights
+*.avi
+*.mp4
