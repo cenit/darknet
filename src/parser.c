@@ -32,6 +32,7 @@
 #include "route_layer.h"
 #include "shortcut_layer.h"
 #include "scale_channels_layer.h"
+#include "sam_layer.h"
 #include "softmax_layer.h"
 #include "utils.h"
 #include "upsample_layer.h"
@@ -50,6 +51,7 @@ LAYER_TYPE string_to_layer_type(char * type)
 
     if (strcmp(type, "[shortcut]")==0) return SHORTCUT;
     if (strcmp(type, "[scale_channels]") == 0) return SCALE_CHANNELS;
+    if (strcmp(type, "[sam]") == 0) return SAM;
     if (strcmp(type, "[crop]")==0) return CROP;
     if (strcmp(type, "[cost]")==0) return COST;
     if (strcmp(type, "[detection]")==0) return DETECTION;
@@ -167,7 +169,7 @@ convolutional_layer parse_convolutional(list *options, size_params params, netwo
 
     int share_index = option_find_int_quiet(options, "share_index", -1);
     convolutional_layer *share_layer = NULL;
-    if(share_layer > -1) share_layer = &net.layers[share_index];
+    if(share_index > -1) share_layer = &net.layers[share_index];
 
     int batch,h,w,c;
     h = params.h;
@@ -183,6 +185,7 @@ convolutional_layer parse_convolutional(list *options, size_params params, netwo
     convolutional_layer layer = make_convolutional_layer(batch,1,h,w,c,n,groups,size,stride,dilation,padding,activation, batch_normalize, binary, xnor, params.net.adam, use_bin_output, params.index, share_layer);
     layer.flipped = option_find_int_quiet(options, "flipped", 0);
     layer.dot = option_find_float_quiet(options, "dot", 0);
+    layer.assisted_excitation = option_find_float_quiet(options, "assisted_excitation", 0);
 
     if(params.net.adam){
         layer.B1 = params.net.B1;
@@ -622,6 +625,23 @@ layer parse_scale_channels(list *options, size_params params, network net)
     return s;
 }
 
+layer parse_sam(list *options, size_params params, network net)
+{
+    char *l = option_find(options, "from");
+    int index = atoi(l);
+    if (index < 0) index = params.index + index;
+
+    int batch = params.batch;
+    layer from = net.layers[index];
+
+    layer s = make_sam_layer(batch, index, params.w, params.h, params.c, from.out_w, from.out_h, from.out_c);
+
+    char *activation_s = option_find_str_quiet(options, "activation", "linear");
+    ACTIVATION activation = get_activation(activation_s);
+    s.activation = activation;
+    return s;
+}
+
 
 layer parse_activation(list *options, size_params params)
 {
@@ -921,6 +941,11 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             net.layers[l.index].use_bin_output = 0;
         }else if (lt == SCALE_CHANNELS) {
             l = parse_scale_channels(options, params, net);
+            net.layers[count - 1].use_bin_output = 0;
+            net.layers[l.index].use_bin_output = 0;
+        }
+        else if (lt == SAM) {
+            l = parse_sam(options, params, net);
             net.layers[count - 1].use_bin_output = 0;
             net.layers[l.index].use_bin_output = 0;
         }else if(lt == DROPOUT){
