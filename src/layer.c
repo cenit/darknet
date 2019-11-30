@@ -12,6 +12,10 @@ void free_sublayer(layer *l)
 
 void free_layer(layer l)
 {
+    if (l.share_layer != NULL) return;    // don't free shared layers
+    if (l.antialiasing) {
+        free_sublayer(l.input_layer);
+    }
     if (l.type == CONV_LSTM) {
         if (l.peephole) {
             free_sublayer(l.vf);
@@ -86,7 +90,7 @@ void free_layer(layer l)
 #endif  // GPU
     if (l.delta)              free(l.delta), l.delta = NULL;
     if (l.output)             free(l.output), l.output = NULL;
-    if (l.output_sigmoid)     free(l.output_sigmoid), l.output_sigmoid = NULL;
+    if (l.activation_input)   free(l.activation_input), l.activation_input = NULL;
     if (l.squared)            free(l.squared);
     if (l.norms)              free(l.norms);
     if (l.spatial_mean)       free(l.spatial_mean);
@@ -150,8 +154,11 @@ void free_layer(layer l)
     if (l.rolling_variance_gpu)    cuda_free(l.rolling_variance_gpu), l.rolling_variance_gpu = NULL;
     if (l.variance_delta_gpu)      cuda_free(l.variance_delta_gpu), l.variance_delta_gpu = NULL;
     if (l.mean_delta_gpu)          cuda_free(l.mean_delta_gpu), l.mean_delta_gpu = NULL;
-    if (l.x_gpu)                   cuda_free(l.x_gpu);  // dont free
     if (l.x_norm_gpu)              cuda_free(l.x_norm_gpu);
+
+    // assisted excitation
+    if (l.gt_gpu)                  cuda_free(l.gt_gpu);
+    if (l.a_avg_gpu)               cuda_free(l.a_avg_gpu);
 
     if (l.align_bit_weights_gpu)   cuda_free((float *)l.align_bit_weights_gpu);
     if (l.mean_arr_gpu)            cuda_free(l.mean_arr_gpu);
@@ -166,9 +173,13 @@ void free_layer(layer l)
     if (l.bias_updates_gpu)        cuda_free(l.bias_updates_gpu), l.bias_updates_gpu = NULL;
     if (l.scales_gpu)              cuda_free(l.scales_gpu), l.scales_gpu = NULL;
     if (l.scale_updates_gpu)       cuda_free(l.scale_updates_gpu), l.scale_updates_gpu = NULL;
-    if (l.output_gpu)              cuda_free(l.output_gpu), l.output_gpu = NULL;
-    if (l.output_sigmoid_gpu)      cuda_free(l.output_sigmoid_gpu), l.output_sigmoid_gpu = NULL;
-    if (l.delta_gpu)               cuda_free(l.delta_gpu), l.delta_gpu = NULL;
+    if (l.input_antialiasing_gpu)  cuda_free(l.input_antialiasing_gpu), l.input_antialiasing_gpu = NULL;
+    if (l.optimized_memory < 2) {
+        if (l.x_gpu)                   cuda_free(l.x_gpu);  l.x_gpu = NULL;
+        if (l.output_gpu)              cuda_free(l.output_gpu), l.output_gpu = NULL;
+        if (l.activation_input_gpu)    cuda_free(l.activation_input_gpu), l.activation_input_gpu = NULL;
+    }
+    if (l.delta_gpu && l.keep_delta_gpu && l.optimized_memory < 3) cuda_free(l.delta_gpu), l.delta_gpu = NULL;
     if (l.rand_gpu)                cuda_free(l.rand_gpu);
     if (l.squared_gpu)             cuda_free(l.squared_gpu);
     if (l.norms_gpu)               cuda_free(l.norms_gpu);
@@ -192,5 +203,32 @@ void free_layer(layer l)
     if (l.last_prev_state_gpu)     cuda_free(l.last_prev_state_gpu);
     if (l.last_prev_cell_gpu)      cuda_free(l.last_prev_cell_gpu);
     if (l.cell_gpu)                cuda_free(l.cell_gpu);
-#endif
+#ifdef CUDNN_DISABLED   // shouldn't be used for -map
+    if (l.srcTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.srcTensorDesc));
+    if (l.dstTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.dstTensorDesc));
+    if (l.srcTensorDesc16) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.srcTensorDesc16));
+    if (l.dstTensorDesc16) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.dstTensorDesc16));
+    if (l.dsrcTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.dsrcTensorDesc));
+    if (l.ddstTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.ddstTensorDesc));
+    if (l.dsrcTensorDesc16) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.dsrcTensorDesc16));
+    if (l.ddstTensorDesc16) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.ddstTensorDesc16));
+    if (l.normTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.normTensorDesc));
+    if (l.normDstTensorDesc) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.normDstTensorDesc));
+    if (l.normDstTensorDescF16) CHECK_CUDNN(cudnnDestroyTensorDescriptor(l.normDstTensorDescF16));
+
+    if (l.weightDesc) CHECK_CUDNN(cudnnDestroyFilterDescriptor(l.weightDesc));
+    if (l.weightDesc16) CHECK_CUDNN(cudnnDestroyFilterDescriptor(l.weightDesc16));
+    if (l.dweightDesc) CHECK_CUDNN(cudnnDestroyFilterDescriptor(l.dweightDesc));
+    if (l.dweightDesc16) CHECK_CUDNN(cudnnDestroyFilterDescriptor(l.dweightDesc16));
+
+    if (l.convDesc) CHECK_CUDNN(cudnnDestroyConvolutionDescriptor(l.convDesc));
+
+    if (l.poolingDesc) CHECK_CUDNN(cudnnDestroyPoolingDescriptor(l.poolingDesc));
+
+    //cudnnConvolutionFwdAlgo_t fw_algo, fw_algo16;
+    //cudnnConvolutionBwdDataAlgo_t bd_algo, bd_algo16;
+    //cudnnConvolutionBwdFilterAlgo_t bf_algo, bf_algo16;
+#endif  // CUDNN
+
+#endif  // GPU
 }
