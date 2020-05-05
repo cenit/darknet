@@ -36,23 +36,6 @@ jobs:
         cmakeAppendedArgs: "-DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release"
         buildWithCMakeArgs: '--target install'
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
-
 
   ubuntu-cuda:
     runs-on: ubuntu-latest
@@ -86,6 +69,10 @@ jobs:
     - name: Restore from cache and run vcpkg
       env:
         vcpkgResponseFile: ${{ github.workspace }}/cmake/vcpkg_linux_cuda.diff
+        CUDACXX: "/usr/local/cuda-10.2/bin/nvcc"
+        CUDA_PATH: "/usr/local/cuda-10.2"
+        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-10.2"
+        LD_LIBRARY_PATH: "/usr/local/cuda-10.2/lib64:/usr/local/cuda-10.2/lib64/stubs:$LD_LIBRARY_PATH"
       uses: lukka/run-vcpkg@v2
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
@@ -108,23 +95,6 @@ jobs:
         cmakeAppendedArgs: "-DCMAKE_BUILD_TYPE=Release"
         cmakeBuildType: 'Release'
         buildWithCMakeArgs: '--target install'
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-cuda-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-cuda-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-cuda-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-cuda-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
 
 
   macOS:
@@ -158,23 +128,6 @@ jobs:
         cmakeAppendedArgs: "-DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release"
         buildWithCMakeArgs: '--target install'
 
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
-
 
   Windows:
     runs-on: windows-latest
@@ -203,27 +156,6 @@ jobs:
         cmakeAppendedArgs: "-DCMAKE_BUILD_TYPE=Release"
         cmakeBuildType: 'Release'
         buildWithCMakeArgs: '--config Release --target install'
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: ${{ runner.workspace }}/buildDirectory/Release/*.dll
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
 
 
   Windows-cuda:
@@ -269,24 +201,3 @@ jobs:
         cmakeAppendedArgs: "-DCMAKE_BUILD_TYPE=Release"
         cmakeBuildType: 'Release'
         buildWithCMakeArgs: '--config Release --target install'
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-cuda-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-cuda-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-cuda-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-cuda-${{ runner.os }}
-        path: ${{ runner.workspace }}/buildDirectory/Release/*.dll
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-vcpkg-cuda-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
