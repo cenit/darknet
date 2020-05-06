@@ -92,7 +92,7 @@ jobs:
         cmakeListsTxtPath: '${{ github.workspace }}/CMakeLists.txt'
         useVcpkgToolchainFile: true
         buildDirectory: '${{ runner.workspace }}/buildDirectory'
-        cmakeAppendedArgs: "-DCMAKE_BUILD_TYPE=Release"
+        cmakeAppendedArgs: "-DBUILD_SHARED_LIBS=OFF -DCMAKE_BUILD_TYPE=Release"
         cmakeBuildType: 'Release'
         buildWithCMakeArgs: '--target install'
 
