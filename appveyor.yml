@@ -1,46 +1,46 @@
 image: Visual Studio 2017
 clone_folder: c:\projects\darknet
-configuration: Release
+cache: C:\Tools\vcpkg\installed\
 
 environment:
     WORKSPACE: C:\projects
-    VCPKG_ROOT: C:\projects\vcpkg
-    VCPKG_DEFAULT_TRIPLET: x64-windows-physycom
     matrix:
-    #- platform: Cygwin64
-    #  COMPILER: cygwin
-    #  CYGWIN_NOWINPATH: yes
-    #  CYGSH: C:\cygwin64\bin\bash -c
+    #- platform: Win64
+    #  USE_CUDA: yes
+    #  INSTALL_CUDA_VERSION: 10.0
+    #  COMPILER: vs
+    #  configuration: Release
+    #  VCPKG_ROOT: C:\Tools\vcpkg
+    #  VCPKG_DEFAULT_TRIPLET: x64-windows
     - platform: Win64
+      USE_CUDA: no
       COMPILER: vs
-
+      configuration: Release
+      VCPKG_ROOT: C:\Tools\vcpkg
+      VCPKG_DEFAULT_TRIPLET: x64-windows
 
 install:
-  - if [%COMPILER%]==[vs] cinst cmake ninja
-  - if [%COMPILER%]==[vs] SET "PATH=C:\Program Files\CMake\bin;%PATH%"
-  - if [%COMPILER%]==[vs] call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
-  - if [%COMPILER%]==[cygwin] SET "PATH=C:\cygwin64\bin;C:\cygwin64\usr\bin;%PATH%"
-  - if [%COMPILER%]==[cygwin] SET PATH=%PATH:C:\Program Files\Git\usr\bin;=%
+  - cinst cmake ninja
+  - SET "PATH=C:\Program Files\CMake\bin;%PATH%"
+  - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat" x64
   - git submodule -q update --init --recursive
   - cd %WORKSPACE%\
-  - mkdir cygwin-downloads
-  - ps: if($env:COMPILER -eq "cygwin") { Invoke-WebRequest https://cygwin.com/setup-x86_64.exe -OutFile $env:WORKSPACE\cygwin-setup.exe }
-  - if [%COMPILER%]==[cygwin] %WORKSPACE%\cygwin-setup.exe --quiet-mode --no-shortcuts --no-startmenu --no-desktop --upgrade-also --root C:\cygwin64 --local-package-dir %WORKSPACE%\cygwin-downloads --packages gcc-g++,cmake,libopencv-devel
   - git clone https://github.com/physycom/sysconfig
-  - #if [%COMPILER%]==[vs] git clone https://github.com/Microsoft/vcpkg
-  - if [%COMPILER%]==[vs] git clone https://github.com/cenit/vcpkg
-  - if [%COMPILER%]==[vs] cd %VCPKG_ROOT%
-  - if [%COMPILER%]==[vs] git checkout dev/cenit/opencv2
-  - if [%COMPILER%]==[vs] copy %WORKSPACE%\sysconfig\cmake\%VCPKG_DEFAULT_TRIPLET%.cmake %WORKSPACE%\vcpkg\triplets\
-  - if [%COMPILER%]==[vs] bootstrap-vcpkg.bat
-  - if [%COMPILER%]==[vs] vcpkg integrate install
-  - if [%COMPILER%]==[vs] vcpkg install opencv2 pthreads
+  - cd %VCPKG_ROOT%
+  - git checkout .
+  - git pull
+  - .\bootstrap-vcpkg.bat
+  - echo set(VCPKG_BUILD_TYPE release) >> triplets\%VCPKG_DEFAULT_TRIPLET%.cmake
+  - vcpkg upgrade --no-dry-run
+  - vcpkg remove opencv4 --recurse
+  - vcpkg install stb pthreads --recurse
+  - vcpkg install ffmpeg --recurse
+  - vcpkg install opencv2[ffmpeg] --recurse
   - cd %WORKSPACE%\darknet\
-  - mkdir build
-  - cd build
+  - mkdir build_release
+  - cd build_release
+  - if [%configuration%]==[Release] cmake -G "Visual Studio 15 2017" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET%" -DCMAKE_BUILD_TYPE="Release" ..
+  - cd ..
 
 build_script:
-  - if [%COMPILER%]==[cygwin] %CYGSH% 'cmake .. -G "Unix Makefiles"'
-  - if [%COMPILER%]==[cygwin] %CYGSH% 'cmake --build .'
-  - if [%COMPILER%]==[vs] cmake -G "Visual Studio 15 2017" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=%VCPKG_DEFAULT_TRIPLET%" ..
-  - if [%COMPILER%]==[vs] cmake --build . --config Release
+  - if [%configuration%]==[Release] cd build_release && cmake --build . --config Release --parallel 8 --target install && cd ..
