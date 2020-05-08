@@ -1,9 +1,9 @@
 #!/usr/bin/env pwsh
 
 $number_of_build_workers=8
-$use_vcpkg=$true
 $use_ninja=$false
 $force_cpp_build=$false
+$build_static=$true
 
 function getProgramFiles32bit() {
   $out = ${env:PROGRAMFILES(X86)}
@@ -74,11 +74,11 @@ function getLatestVisualStudioWithDesktopWorkloadVersion() {
 }
 
 
-if ((Test-Path env:VCPKG_ROOT) -and $use_vcpkg) {
+if (Test-Path env:VCPKG_ROOT) {
   $vcpkg_path = "$env:VCPKG_ROOT"
   Write-Host "Found vcpkg in VCPKG_ROOT: $vcpkg_path"
 }
-elseif ((Test-Path "${env:WORKSPACE}\vcpkg") -and $use_vcpkg) {
+elseif (Test-Path "${env:WORKSPACE}\vcpkg") {
   $vcpkg_path = "${env:WORKSPACE}\vcpkg"
   Write-Host "Found vcpkg in WORKSPACE\vcpkg: $vcpkg_path"
 }
@@ -86,15 +86,21 @@ else {
   Write-Host "Skipping vcpkg-enabled builds because the VCPKG_ROOT environment variable is not defined or you requested to avoid VCPKG, using self-distributed libs`n" -ForegroundColor Yellow
 }
 
-if ($null -eq $env:VCPKG_DEFAULT_TRIPLET -and $use_vcpkg) {
-  Write-Host "No default triplet has been set-up for vcpkg. Defaulting to x64-windows" -ForegroundColor Yellow
-  $vcpkg_triplet = "x64-windows"
+if ($null -eq $env:VCPKG_DEFAULT_TRIPLET) {
+  if($build_static) {
+    Write-Host "No default triplet has been set-up for vcpkg. Defaulting to x64-windows-static" -ForegroundColor Yellow
+    $vcpkg_triplet = "x64-windows-static"
+  }
+  else {
+    Write-Host "No default triplet has been set-up for vcpkg. Defaulting to x64-windows" -ForegroundColor Yellow
+    $vcpkg_triplet = "x64-windows"
+  }
 }
-elseif ($use_vcpkg) {
+else{
   $vcpkg_triplet = $env:VCPKG_DEFAULT_TRIPLET
 }
 
-if ($vcpkg_triplet -Match "x86" -and $use_vcpkg) {
+if ($vcpkg_triplet -Match "x86") {
   Throw "darknet is supported only in x64 builds!"
 }
 
@@ -150,75 +156,57 @@ if (Test-Path env:CUDA_PATH) {
   }
 }
 
-if($force_cpp_build) {
-  $additional_build_setup="-DBUILD_AS_CPP:BOOL=TRUE"
+if ($force_cpp_build) {
+  $additional_build_setup = "-DBUILD_AS_CPP:BOOL=TRUE"
 }
 
-if ($use_vcpkg) {
-  ## DEBUG
-  #New-Item -Path .\build_win_debug -ItemType directory -Force
-  #Set-Location build_win_debug
-  #if ($use_ninja) {
-    #cmake -G "$generator" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" #"-DCMAKE_BUILD_TYPE=Debug" $additional_build_setup ..
-    #$dllfolder = "."
-  #}
-  #else {
-    #cmake -G "$generator" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Debug" $additional_build_setup ..
-    #$dllfolder = "Debug"
-  #}
-  #cmake --build . --config Debug --target install
-  ##cmake --build . --config Debug --parallel ${number_of_build_workers} --target install  #valid only for CMake 3.12+
-  #Remove-Item DarknetConfig.cmake
-  #Remove-Item DarknetConfigVersion.cmake
-  #$dllfiles = Get-ChildItem ${dllfolder}\*.dll
-  #if ($dllfiles) {
-  #  Copy-Item $dllfiles ..
-  #}
-  #Set-Location ..
-  #Copy-Item cmake\Modules\*.cmake share\darknet\
-
-  # RELEASE
-  New-Item -Path .\build_win_release -ItemType directory -Force
-  Set-Location build_win_release
-  if($use_ninja) {
-    cmake -G "$generator" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Release" $additional_build_setup ..
-    $dllfolder = "."
-  }
-  else {
-    cmake -G "$generator" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Release" $additional_build_setup ..
-    $dllfolder = "Release"
-  }
-  cmake --build . --config Release --target install
-  #cmake --build . --config Release --parallel ${number_of_build_workers} --target install  #valid only for CMake 3.12+
-  Remove-Item DarknetConfig.cmake
-  Remove-Item DarknetConfigVersion.cmake
-  $dllfiles = Get-ChildItem ${dllfolder}\*.dll
-  if ($dllfiles) {
-    Copy-Item $dllfiles ..
-  }
-  Set-Location ..
-  Copy-Item cmake\Modules\*.cmake share\darknet\
+if ($build_static) {
+  $build_static_flag = "-DBUILD_SHARED_LIBS:BOOL=FALSE"
 }
 else {
-  # USE LOCAL PTHREAD LIB AND LOCAL STB HEADER, NO VCPKG, ONLY RELEASE MODE SUPPORTED
-  # if you want to manually force this case, remove VCPKG_ROOT env variable and remember to use "vcpkg integrate remove" in case you had enabled user-wide vcpkg integration
-  New-Item -Path .\build_win_release_novcpkg -ItemType directory -Force
-  Set-Location build_win_release_novcpkg
-  if($use_ninja) {
-    cmake -G "$generator" $additional_build_setup ..
-  }
-  else {
-    cmake -G "$generator" -T "host=x64" -A "x64" $additional_build_setup ..
-  }
-  cmake --build . --config Release --target install
-  #cmake --build . --config Release --parallel ${number_of_build_workers} --target install  #valid only for CMake 3.12+
-  Remove-Item DarknetConfig.cmake
-  Remove-Item DarknetConfigVersion.cmake
-  $dllfolder = "..\3rdparty\pthreads\bin"
-  $dllfiles = Get-ChildItem ${dllfolder}\*.dll
-  if ($dllfiles) {
-    Copy-Item $dllfiles ..
-  }
-  Set-Location ..
-  Copy-Item cmake\Modules\*.cmake share\darknet\
+  $build_static_flag = "-DBUILD_SHARED_LIBS:BOOL=TRUE"
 }
+
+## DEBUG
+#New-Item -Path .\build_win_debug -ItemType directory -Force
+#Set-Location build_win_debug
+#if ($use_ninja) {
+  #cmake -G "$generator" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" #"-DCMAKE_BUILD_TYPE=Debug" $additional_build_setup $build_static_flag  ..
+  #$dllfolder = "."
+#}
+#else {
+  #cmake -G "$generator" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Debug" $additional_build_setup $build_static_flag ..
+  #$dllfolder = "Debug"
+#}
+#cmake --build . --config Debug --target install
+##cmake --build . --config Debug --parallel ${number_of_build_workers} --target install  #valid only for CMake 3.12+
+#Remove-Item DarknetConfig.cmake
+#Remove-Item DarknetConfigVersion.cmake
+#$dllfiles = Get-ChildItem ${dllfolder}\*.dll
+#if ($dllfiles) {
+#  Copy-Item $dllfiles ..
+#}
+#Set-Location ..
+#Copy-Item cmake\Modules\*.cmake share\darknet\
+
+# RELEASE
+New-Item -Path .\build_win_release -ItemType directory -Force
+Set-Location build_win_release
+if($use_ninja) {
+  cmake -G "$generator" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Release" $additional_build_setup $build_static_flag ..
+  $dllfolder = "."
+}
+else {
+  cmake -G "$generator" -T "host=x64" -A "x64" "-DCMAKE_TOOLCHAIN_FILE=$vcpkg_path\scripts\buildsystems\vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet" "-DCMAKE_BUILD_TYPE=Release" $additional_build_setup $build_static_flag  ..
+  $dllfolder = "Release"
+}
+cmake --build . --config Release --target install
+#cmake --build . --config Release --parallel ${number_of_build_workers} --target install  #valid only for CMake 3.12+
+Remove-Item DarknetConfig.cmake
+Remove-Item DarknetConfigVersion.cmake
+$dllfiles = Get-ChildItem ${dllfolder}\*.dll
+if ($dllfiles) {
+  Copy-Item $dllfiles ..
+}
+Set-Location ..
+Copy-Item cmake\Modules\*.cmake share\darknet\

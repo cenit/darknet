@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 number_of_build_workers=8
-bypass_vcpkg=true
 force_cpp_build=false
 
 if [[ "$OSTYPE" == "darwin"* ]]; then
@@ -10,21 +9,21 @@ else
   vcpkg_triplet="x64-linux"
 fi
 
-if [[ ! -z "${VCPKG_ROOT}" ]] && [ -d ${VCPKG_ROOT} ] && [ ! "$bypass_vcpkg" = true ]
+if [[ ! -z "${VCPKG_ROOT}" ]] && [ -d ${VCPKG_ROOT} ]
 then
   vcpkg_path="${VCPKG_ROOT}"
   vcpkg_define="-DCMAKE_TOOLCHAIN_FILE=${vcpkg_path}/scripts/buildsystems/vcpkg.cmake"
   vcpkg_triplet_define="-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet"
   echo "Found vcpkg in VCPKG_ROOT: ${vcpkg_path}"
   additional_defines="-DBUILD_SHARED_LIBS=OFF"
-elif [[ ! -z "${WORKSPACE}" ]] && [ -d ${WORKSPACE}/vcpkg ] && [ ! "$bypass_vcpkg" = true ]
+elif [[ ! -z "${WORKSPACE}" ]] && [ -d ${WORKSPACE}/vcpkg ]
 then
   vcpkg_path="${WORKSPACE}/vcpkg"
   vcpkg_define="-DCMAKE_TOOLCHAIN_FILE=${vcpkg_path}/scripts/buildsystems/vcpkg.cmake"
   vcpkg_triplet_define="-DVCPKG_TARGET_TRIPLET=$vcpkg_triplet"
   echo "Found vcpkg in WORKSPACE/vcpkg: ${vcpkg_path}"
   additional_defines="-DBUILD_SHARED_LIBS=OFF"
-elif [ ! "$bypass_vcpkg" = true ]
+elif
 then
   (>&2 echo "darknet is unsupported without vcpkg, use at your own risk!")
 fi
