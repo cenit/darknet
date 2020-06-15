@@ -12,8 +12,9 @@ matrix:
       osx_image: xcode11.4
       env:
         - additional_defines="-DBUILD_SHARED_LIBS=OFF"
-        - MATRIX_EVAL="brew install yasm && unset CC && unset CXX"
         - USE_VCPKG=true
+        - USE_CUDA=false
+        - MATRIX_EVAL="brew install yasm && unset CC && unset CXX"
         - VCPKG_DEFINES="-DCMAKE_TOOLCHAIN_FILE=$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 
@@ -29,13 +30,14 @@ matrix:
       env:
         - additional_defines="-DBUILD_SHARED_LIBS=OFF"
         - USE_VCPKG=true
+        - USE_CUDA=true
         - VCPKG_DEFINES="-DCMAKE_TOOLCHAIN_FILE=$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
-        - INSTALL_CUDA_VERSION="10.2"
+        - INSTALL_CUDA_VERSION="11.0"
         - CUDACXX=/usr/local/cuda-${INSTALL_CUDA_VERSION}/bin/nvcc
         - CUDA_PATH=/usr/local/cuda-${INSTALL_CUDA_VERSION}
         - CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${INSTALL_CUDA_VERSION}
         - LD_LIBRARY_PATH="/usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64:/usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs:${LD_LIBRARY_PATH}"
-        - MATRIX_EVAL="wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_10.2.89-1_amd64.deb && sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub && sudo dpkg -i cuda-repo-ubuntu1804_10.2.89-1_amd64.deb && wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb && sudo dpkg -i nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb && sudo apt-get -y update && sudo apt-get install -y --no-install-recommends cuda-compiler-10-2 cuda-libraries-dev-10-2 cuda-driver-dev-10-2 cuda-cudart-dev-10-2 cuda-curand-dev-10-2 && sudo apt-get install -y --no-install-recommends libcudnn7-dev && sudo ln -s /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so.1"
+        - MATRIX_EVAL="wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin && sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600 && sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub && sudo add-apt-repository \"deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /\" && sudo apt-get update && sudo apt-get -y install cuda && sudo ln -s /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so.1"
 
     - os: linux
       compiler: gcc
@@ -49,6 +51,7 @@ matrix:
       env:
         - additional_defines="-DBUILD_SHARED_LIBS=OFF"
         - USE_VCPKG=true
+        - USE_CUDA=false
         - VCPKG_DEFINES="-DCMAKE_TOOLCHAIN_FILE=$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
         - MATRIX_EVAL=""
 
@@ -71,13 +74,14 @@ install:
   - if [ "${USE_VCPKG}" = true ] ; then ./bootstrap-vcpkg.sh ; fi
   - if [ "${USE_VCPKG}" = true ] ; then echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-osx.cmake ; fi
   - if [ "${USE_VCPKG}" = true ] ; then echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-linux.cmake ; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg upgrade --no-dry-run; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait ./vcpkg install stb pthreads --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install ffmpeg --recurse; fi
-  #- if [ "${USE_VCPKG}" = true ] && [[ ! -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg,cuda] --recurse; fi
-  #- if [ "${USE_VCPKG}" = true ] && [[ -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; then rm -rf buildtrees; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg upgrade --no-dry-run ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait ./vcpkg install stb pthreads --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then if [ "${USE_CUDA}" = true ] ; then travis_wait ./vcpkg install cudnn --recurse ; fi ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install ffmpeg --recurse ; fi
+  #- if [ "${USE_VCPKG}" = true ] && [[ ! -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg,cuda] --recurse ; fi
+  #- if [ "${USE_VCPKG}" = true ] && [[ -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then rm -rf buildtrees ; fi
   - popd
 
 before_script:
