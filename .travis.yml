@@ -74,14 +74,14 @@ install:
   - if [ "${USE_VCPKG}" = true ] ; then ./bootstrap-vcpkg.sh ; fi
   - if [ "${USE_VCPKG}" = true ] ; then echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-osx.cmake ; fi
   - if [ "${USE_VCPKG}" = true ] ; then echo "set(VCPKG_BUILD_TYPE release)" >> triplets/x64-linux.cmake ; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg upgrade --no-dry-run; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait ./vcpkg install stb pthreads --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; if [ "${USE_CUDA}" = true ] ; then travis_wait ./vcpkg install cudnn --recurse; fi; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install ffmpeg --recurse; fi
-  #- if [ "${USE_VCPKG}" = true ] && [[ ! -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg,cuda] --recurse; fi
-  #- if [ "${USE_VCPKG}" = true ] && [[ -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse; fi
-  - if [ "${USE_VCPKG}" = true ] ; then rm -rf buildtrees; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg upgrade --no-dry-run ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait ./vcpkg install stb pthreads --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then if [ "${USE_CUDA}" = true ] ; then travis_wait ./vcpkg install cudnn --recurse ; fi ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install ffmpeg --recurse ; fi
+  #- if [ "${USE_VCPKG}" = true ] && [[ ! -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg,cuda] --recurse ; fi
+  #- if [ "${USE_VCPKG}" = true ] && [[ -z "${CUDACXX}" ]] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then travis_wait 45 ./vcpkg install opencv[ffmpeg] --recurse ; fi
+  - if [ "${USE_VCPKG}" = true ] ; then rm -rf buildtrees ; fi
   - popd
 
 before_script:
