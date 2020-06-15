@@ -51,28 +51,26 @@ jobs:
 
     - name: 'Install CUDA'
       env:
-        CUDACXX: "/usr/local/cuda-10.2/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda-10.2"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-10.2"
-        LD_LIBRARY_PATH: "/usr/local/cuda-10.2/lib64:/usr/local/cuda-10.2/lib64/stubs:$LD_LIBRARY_PATH"
+        CUDACXX: "/usr/local/cuda-11.0/bin/nvcc"
+        CUDA_PATH: "/usr/local/cuda-11.0"
+        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-11.0"
+        LD_LIBRARY_PATH: "/usr/local/cuda-11.0/lib64:/usr/local/cuda-11.0/lib64/stubs:$LD_LIBRARY_PATH"
       run: |
-        wget http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-repo-ubuntu1804_10.2.89-1_amd64.deb
-        sudo apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
-        sudo dpkg -i cuda-repo-ubuntu1804_10.2.89-1_amd64.deb
-        wget http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu1804/x86_64/nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
-        sudo dpkg -i nvidia-machine-learning-repo-ubuntu1804_1.0.0-1_amd64.deb
-        sudo apt update
-        sudo apt-get install -y --no-install-recommends cuda-compiler-10-2 cuda-libraries-dev-10-2 cuda-driver-dev-10-2 cuda-cudart-dev-10-2 cuda-curand-dev-10-2
-        sudo apt-get install -y --no-install-recommends libcudnn7-dev
-        sudo ln -s /usr/local/cuda-10.2/lib64/stubs/libcuda.so /usr/local/cuda-10.2/lib64/stubs/libcuda.so.1
+        wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin
+        sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
+        sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /"
+        sudo apt-get update
+        sudo apt-get -y install cuda
+        sudo ln -s /usr/local/cuda-11.0/lib64/stubs/libcuda.so /usr/local/cuda-11.0/lib64/stubs/libcuda.so.1
 
     - name: Restore from cache and run vcpkg
       env:
         vcpkgResponseFile: ${{ github.workspace }}/cmake/vcpkg_linux_cuda.diff
-        CUDACXX: "/usr/local/cuda-10.2/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda-10.2"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-10.2"
-        LD_LIBRARY_PATH: "/usr/local/cuda-10.2/lib64:/usr/local/cuda-10.2/lib64/stubs:$LD_LIBRARY_PATH"
+        CUDACXX: "/usr/local/cuda-11.0/bin/nvcc"
+        CUDA_PATH: "/usr/local/cuda-11.0"
+        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-11.0"
+        LD_LIBRARY_PATH: "/usr/local/cuda-11.0/lib64:/usr/local/cuda-11.0/lib64/stubs:$LD_LIBRARY_PATH"
       uses: lukka/run-vcpkg@v2
       with:
         vcpkgArguments: '@${{ env.vcpkgResponseFile }}'
@@ -82,10 +80,10 @@ jobs:
 
     - name: 'Build with CMake and Ninja'
       env:
-        CUDACXX: "/usr/local/cuda-10.2/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda-10.2"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-10.2"
-        LD_LIBRARY_PATH: "/usr/local/cuda-10.2/lib64:/usr/local/cuda-10.2/lib64/stubs:$LD_LIBRARY_PATH"
+        CUDACXX: "/usr/local/cuda-11.0/bin/nvcc"
+        CUDA_PATH: "/usr/local/cuda-11.0"
+        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda-11.0"
+        LD_LIBRARY_PATH: "/usr/local/cuda-11.0/lib64:/usr/local/cuda-11.0/lib64/stubs:$LD_LIBRARY_PATH"
       uses: lukka/run-cmake@v2
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
@@ -174,10 +172,10 @@ jobs:
     - name: Restore from cache and run vcpkg
       env:
         vcpkgResponseFile: ${{ github.workspace }}/cmake/vcpkg_windows_cuda.diff
-        CUDA_PATH: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDA_PATH_V10_2: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDA_TOOLKIT_ROOT_DIR: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDACXX: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin\\nvcc.exe"
+        CUDA_PATH: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDA_PATH_V10_2: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDA_TOOLKIT_ROOT_DIR: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDACXX: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\bin\\nvcc.exe"
 
       uses: lukka/run-vcpkg@v2
       with:
@@ -188,10 +186,10 @@ jobs:
 
     - name: 'Build with CMake and Ninja'
       env:
-        CUDA_PATH: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDA_PATH_V10_2: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDA_TOOLKIT_ROOT_DIR: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2"
-        CUDACXX: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v10.2\\bin\\nvcc.exe"
+        CUDA_PATH: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDA_PATH_V10_2: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDA_TOOLKIT_ROOT_DIR: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0"
+        CUDACXX: "C:\\Program\ Files\\NVIDIA GPU Computing Toolkit\\CUDA\\v11.0\\bin\\nvcc.exe"
       uses: lukka/run-cmake@v2
       with:
         cmakeListsOrSettingsJson: CMakeListsTxtAdvanced
