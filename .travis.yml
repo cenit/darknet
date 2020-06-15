@@ -12,8 +12,9 @@ matrix:
       osx_image: xcode11.4
       env:
         - additional_defines="-DBUILD_SHARED_LIBS=OFF"
-        - MATRIX_EVAL="brew install yasm && unset CC && unset CXX"
         - USE_VCPKG=true
+        - USE_CUDA=false
+        - MATRIX_EVAL="brew install yasm && unset CC && unset CXX"
         - VCPKG_DEFINES="-DCMAKE_TOOLCHAIN_FILE=$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
 
 
@@ -36,7 +37,7 @@ matrix:
         - CUDA_PATH=/usr/local/cuda-${INSTALL_CUDA_VERSION}
         - CUDA_TOOLKIT_ROOT_DIR=/usr/local/cuda-${INSTALL_CUDA_VERSION}
         - LD_LIBRARY_PATH="/usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64:/usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs:${LD_LIBRARY_PATH}"
-        - MATRIX_EVAL="wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin && sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600 && sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub && sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /" && sudo apt-get update && sudo apt-get -y install cuda && sudo ln -s /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so.1"
+        - MATRIX_EVAL="wget https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/cuda-ubuntu1804.pin && sudo mv cuda-ubuntu1804.pin /etc/apt/preferences.d/cuda-repository-pin-600 && sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub && sudo add-apt-repository \"deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/ /\" && sudo apt-get update && sudo apt-get -y install cuda && sudo ln -s /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${INSTALL_CUDA_VERSION}/lib64/stubs/libcuda.so.1"
 
     - os: linux
       compiler: gcc
@@ -50,6 +51,7 @@ matrix:
       env:
         - additional_defines="-DBUILD_SHARED_LIBS=OFF"
         - USE_VCPKG=true
+        - USE_CUDA=false
         - VCPKG_DEFINES="-DCMAKE_TOOLCHAIN_FILE=$HOME/vcpkg/scripts/buildsystems/vcpkg.cmake"
         - MATRIX_EVAL=""
 
