@@ -83,6 +83,7 @@ elseif (Test-Path "${env:WORKSPACE}\vcpkg") {
   Write-Host "Found vcpkg in WORKSPACE\vcpkg: $vcpkg_path"
 }
 else {
+  $use_vcpkg=$false
   Write-Host "Skipping vcpkg-enabled builds because the VCPKG_ROOT environment variable is not defined or you requested to avoid VCPKG, using self-distributed libs`n" -ForegroundColor Yellow
 }
 
@@ -153,6 +154,10 @@ if (Test-Path env:CUDA_PATH) {
   if (-Not(Test-Path env:CUDA_TOOLKIT_ROOT_DIR)) {
     $env:CUDA_TOOLKIT_ROOT_DIR = "${env:CUDA_PATH}"
     Write-Host "Added missing env variable CUDA_TOOLKIT_ROOT_DIR" -ForegroundColor Yellow
+  }
+  if (-Not(Test-Path env:CUDACXX)) {
+    $env:CUDACXX = "${env:CUDA_PATH}\bin\nvcc.exe"
+    Write-Host "Added missing env variable CUDACXX" -ForegroundColor Yellow
   }
 }
 
