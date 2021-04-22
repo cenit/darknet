@@ -1,11 +1,15 @@
-name: Darknet Continuous Integration
+name: Darknet Pull Requests
 
-on: [push, workflow_dispatch]
+on: [pull_request]
 
 env:
-  VCPKG_BINARY_SOURCES: 'clear;nuget,vcpkgbinarycache,readwrite'
+  VCPKG_BINARY_SOURCES: 'clear;nuget,vcpkgbinarycache,read'
 
 jobs:
+  ubuntu-makefile:
+    runs-on: ubuntu-20.04
+    steps:
+    - uses: actions/checkout@v2
 
     - name: Update apt
       run: sudo apt update
@@ -74,6 +78,7 @@ jobs:
     - uses: actions/checkout@v2
 
     - name: Update apt
+      run: sudo apt update
     - name: Install dependencies
       run: sudo apt install yasm nasm
 
@@ -106,9 +111,6 @@ jobs:
         ./vcpkg/bootstrap-vcpkg.sh ;
         mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json ;
-        mono $(./vcpkg/vcpkg fetch nuget | tail -n 1)
-        setapikey ${{ secrets.BAGET_API_KEY }}
         -Source http://93.49.111.10:5555/v3/index.json
 
     - name: 'Build'
@@ -185,11 +187,60 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install dependencies
-      run: sudo apt install yasm
+      run: sudo apt install libopencv-dev
 
     - uses: lukka/get-cmake@latest
 
     - name: 'Install CUDA'
+      run: |
+        sudo apt update
+        sudo apt-get dist-upgrade -y
+        sudo wget -O /etc/apt/preferences.d/cuda-repository-pin-600 https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/cuda-ubuntu2004.pin
+        sudo apt-key adv --fetch-keys https://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/7fa2af80.pub
+        sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/cuda/repos/ubuntu2004/x86_64/ /"
+        sudo add-apt-repository "deb http://developer.download.nvidia.com/compute/machine-learning/repos/ubuntu2004/x86_64/ /"
+        sudo apt-get install -y --no-install-recommends cuda-compiler-11-2 cuda-libraries-dev-11-2 cuda-driver-dev-11-2 cuda-cudart-dev-11-2
+        sudo apt-get install -y --no-install-recommends libcudnn8-dev
+        sudo rm -rf /usr/local/cuda
+        sudo ln -s /usr/local/cuda-11.2/lib64/stubs/libcuda.so /usr/local/cuda-11.2/lib64/stubs/libcuda.so.1
+        sudo ln -s /usr/local/cuda-11.2/lib64/stubs/libcuda.so /usr/local/cuda-11.2/lib64/libcuda.so.1
+        sudo ln -s /usr/local/cuda-11.2/lib64/stubs/libcuda.so /usr/local/cuda-11.2/lib64/libcuda.so
+        sudo ln -s /usr/local/cuda-11.2 /usr/local/cuda
+        export PATH=/usr/local/cuda/bin:$PATH
+        export LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH
+        nvcc --version
+        gcc --version
+
+    - name: 'Build'
+      shell: pwsh
+      env:
+        CUDACXX: "/usr/local/cuda/bin/nvcc"
+        CUDA_PATH: "/usr/local/cuda"
+        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
+        LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
+      run: ./build.ps1 -EnableOPENCV -EnableCUDA -DisableInteractive -DoNotUpdateDARKNET
+
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-cuda-${{ runner.os }}
+        path: cfg
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-cuda-${{ runner.os }}
+        path: data
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-cuda-${{ runner.os }}
+        path: ${{ github.workspace }}/*dark*
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-cuda-${{ runner.os }}
+        path: ${{ github.workspace }}/uselib*
+
+
+  ubuntu-no-ocv-cpp:
+    runs-on: ubuntu-20.04
+    steps:
     - uses: actions/checkout@v2
 
     - uses: lukka/get-cmake@latest
@@ -216,15 +267,13 @@ jobs:
         ./vcpkg/bootstrap-vcpkg.sh ;
         mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json ;
-        mono $(./vcpkg/vcpkg fetch nuget | tail -n 1)
-        setapikey ${{ secrets.BAGET_API_KEY }}
         -Source http://93.49.111.10:5555/v3/index.json
 
     - name: 'Build'
       shell: pwsh
       run: ./build.ps1 -UseVCPKG -DoNotUpdateVCPKG -DisableInteractive -DoNotUpdateDARKNET
 
+    - uses: actions/upload-artifact@v2
       with:
         name: darknet-vcpkg-${{ runner.os }}
         path: cfg
@@ -300,15 +349,32 @@ jobs:
         ./vcpkg/bootstrap-vcpkg.sh ;
         $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json ;
-        $(./vcpkg/vcpkg fetch nuget | tail -n 1)
-        setapikey ${{ secrets.BAGET_API_KEY }}
         -Source http://93.49.111.10:5555/v3/index.json
 
     - name: 'Build'
       shell: pwsh
       run: ./build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateDARKNET
 
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-vcpkg-${{ runner.os }}
+        path: cfg
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-vcpkg-${{ runner.os }}
+        path: data
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-vcpkg-${{ runner.os }}
+        path: ${{ github.workspace }}/*dark*
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-vcpkg-${{ runner.os }}
+        path: ${{ runner.workspace }}/buildDirectory/Release/*.dll
+    - uses: actions/upload-artifact@v2
+      with:
+        name: darknet-vcpkg-${{ runner.os }}
+        path: ${{ github.workspace }}/uselib*
 
 
   win-intlibs:
