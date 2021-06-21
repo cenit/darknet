@@ -4,7 +4,7 @@ on:
   push:
   workflow_dispatch:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 2 * * *'
 
 env:
   VCPKG_BINARY_SOURCES: 'clear;nuget,vcpkgbinarycache,readwrite'
@@ -154,45 +154,6 @@ jobs:
         CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
         LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
       run: ./build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 2 -DisableInteractive -DoNotUpdateDARKNET
-
-
-  ubuntu:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Update apt
-      run: sudo apt update
-    - name: Install dependencies
-      run: sudo apt install libopencv-dev
-
-    - uses: lukka/get-cmake@latest
-
-    - name: 'Build'
-      shell: pwsh
-      env:
-        CUDACXX: "/usr/local/cuda/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
-        LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ./build.ps1 -EnableOPENCV -DisableInteractive -DoNotUpdateDARKNET
-
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: cfg
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: data
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: ${{ github.workspace }}/*dark*
-    - uses: actions/upload-artifact@v2
-      with:
-        name: darknet-${{ runner.os }}
-        path: ${{ github.workspace }}/uselib*
 
 
   ubuntu-setup-sh:
