@@ -159,7 +159,7 @@ local_layer parse_local(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before local layer must output image.");
+    if(!(h && w && c)) error("Layer before local layer must output image.", DARKNET_LOC);
 
     local_layer layer = make_local_layer(batch,h,w,c,n,size,stride,pad,activation);
 
@@ -205,7 +205,7 @@ convolutional_layer parse_convolutional(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before convolutional layer must output image.");
+    if(!(h && w && c)) error("Layer before convolutional layer must output image.", DARKNET_LOC);
     int batch_normalize = option_find_int_quiet(options, "batch_normalize", 0);
     int cbn = option_find_int_quiet(options, "cbn", 0);
     if (cbn) batch_normalize = 2;
@@ -781,7 +781,7 @@ crop_layer parse_crop(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before crop layer must output image.");
+    if(!(h && w && c)) error("Layer before crop layer must output image.", DARKNET_LOC);
 
     int noadjust = option_find_int_quiet(options, "noadjust",0);
 
@@ -801,7 +801,7 @@ layer parse_reorg(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before reorg layer must output image.");
+    if(!(h && w && c)) error("Layer before reorg layer must output image.", DARKNET_LOC);
 
     layer layer = make_reorg_layer(batch,w,h,c,stride,reverse);
     return layer;
@@ -818,7 +818,7 @@ layer parse_reorg_old(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch = params.batch;
-    if (!(h && w && c)) error("Layer before reorg layer must output image.");
+    if (!(h && w && c)) error("Layer before reorg layer must output image.", DARKNET_LOC);
 
     layer layer = make_reorg_old_layer(batch, w, h, c, stride, reverse);
     return layer;
@@ -841,7 +841,7 @@ maxpool_layer parse_local_avgpool(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch = params.batch;
-    if (!(h && w && c)) error("Layer before [local_avgpool] layer must output image.");
+    if (!(h && w && c)) error("Layer before [local_avgpool] layer must output image.", DARKNET_LOC);
 
     maxpool_layer layer = make_maxpool_layer(batch, h, w, c, size, stride_x, stride_y, padding, maxpool_depth, out_channels, antialiasing, avgpool, params.train);
     return layer;
@@ -864,7 +864,7 @@ maxpool_layer parse_maxpool(list *options, size_params params)
     w = params.w;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before [maxpool] layer must output image.");
+    if(!(h && w && c)) error("Layer before [maxpool] layer must output image.", DARKNET_LOC);
 
     maxpool_layer layer = make_maxpool_layer(batch, h, w, c, size, stride_x, stride_y, padding, maxpool_depth, out_channels, antialiasing, avgpool, params.train);
     layer.maxpool_zero_nonmax = option_find_int_quiet(options, "maxpool_zero_nonmax", 0);
@@ -878,7 +878,7 @@ avgpool_layer parse_avgpool(list *options, size_params params)
     h = params.h;
     c = params.c;
     batch=params.batch;
-    if(!(h && w && c)) error("Layer before avgpool layer must output image.");
+    if(!(h && w && c)) error("Layer before avgpool layer must output image.", DARKNET_LOC);
 
     avgpool_layer layer = make_avgpool_layer(batch,w,h,c);
     return layer;
@@ -952,7 +952,7 @@ layer parse_shortcut(list *options, size_params params, network net)
 
     char *l = option_find(options, "from");
     int len = strlen(l);
-    if (!l) error("Route Layer must specify input layers: from = ...");
+    if (!l) error("Route Layer must specify input layers: from = ...", DARKNET_LOC);
     int n = 1;
     int i;
     for (i = 0; i < len; ++i) {
@@ -1084,7 +1084,7 @@ layer parse_upsample(list *options, size_params params, network net)
 route_layer parse_route(list *options, size_params params)
 {
     char *l = option_find(options, "layers");
-    if(!l) error("Route Layer must specify input layers");
+    if(!l) error("Route Layer must specify input layers", DARKNET_LOC);
     int len = strlen(l);
     int n = 1;
     int i;
@@ -1243,7 +1243,7 @@ void parse_net_options(list *options, network *net)
     net->hue = option_find_float_quiet(options, "hue", 0);
     net->power = option_find_float_quiet(options, "power", 4);
 
-    if(!net->inputs && !(net->h && net->w && net->c)) error("No input parameters supplied");
+    if(!net->inputs && !(net->h && net->w && net->c)) error("No input parameters supplied", DARKNET_LOC);
 
     char *policy_s = option_find_str(options, "policy", "constant");
     net->policy = get_policy(policy_s);
@@ -1267,7 +1267,7 @@ void parse_net_options(list *options, network *net)
         char *l = option_find(options, "steps");
         char *p = option_find(options, "scales");
         char *s = option_find(options, "seq_scales");
-        if(net->policy == STEPS && (!l || !p)) error("STEPS policy must have steps and scales in cfg file");
+        if(net->policy == STEPS && (!l || !p)) error("STEPS policy must have steps and scales in cfg file", DARKNET_LOC);
 
         if (l) {
             int len = strlen(l);
@@ -1361,17 +1361,17 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 {
     list *sections = read_cfg(filename);
     node *n = sections->front;
-    if(!n) error("Config file has no sections");
+    if(!n) error("Config file has no sections", DARKNET_LOC);
     network net = make_network(sections->size - 1);
     net.gpu_index = gpu_index;
     size_params params;
 
-    if (batch > 0) params.train = 0;    // allocates memory for Detection only
-    else params.train = 1;              // allocates memory for Detection & Training
+    if (batch > 0) params.train = 0;    // allocates memory for Inference only
+    else params.train = 1;              // allocates memory for Inference & Training
 
     section *s = (section *)n->val;
     list *options = s->options;
-    if(!is_network(s)) error("First section must be [net] or [network]");
+    if(!is_network(s)) error("First section must be [net] or [network]", DARKNET_LOC);
     parse_net_options(options, &net);
 
 #ifdef GPU
@@ -1395,6 +1395,7 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     params.net = net;
     printf("mini_batch = %d, batch = %d, time_steps = %d, train = %d \n", net.batch, net.batch * net.subdivisions, net.time_steps, params.train);
 
+    int last_stop_backward = -1;
     int avg_outputs = 0;
     int avg_counter = 0;
     float bflops = 0;
@@ -1408,8 +1409,32 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
     n = n->next;
     int count = 0;
     free_section(s);
+
+    // find l.stopbackward = option_find_int_quiet(options, "stopbackward", 0);
+    node *n_tmp = n;
+    int count_tmp = 0;
+    if (params.train == 1) {
+        while (n_tmp) {
+            s = (section *)n_tmp->val;
+            options = s->options;
+            int stopbackward = option_find_int_quiet(options, "stopbackward", 0);
+            if (stopbackward == 1) {
+                last_stop_backward = count_tmp;
+                printf("last_stop_backward = %d \n", last_stop_backward);
+            }
+            n_tmp = n_tmp->next;
+            ++count_tmp;
+        }
+    }
+
+    int old_params_train = params.train;
+
     fprintf(stderr, "   layer   filters  size/strd(dil)      input                output\n");
     while(n){
+
+        params.train = old_params_train;
+        if (count < last_stop_backward) params.train = 0;
+
         params.index = count;
         fprintf(stderr, "%4d ", count);
         s = (section *)n->val;
@@ -1478,7 +1503,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             int k;
             for (k = 0; k < l.n; ++k) {
                 net.layers[l.input_layers[k]].use_bin_output = 0;
-                net.layers[l.input_layers[k]].keep_delta_gpu = 1;
+                if (count >= last_stop_backward)
+                    net.layers[l.input_layers[k]].keep_delta_gpu = 1;
             }
         }else if (lt == UPSAMPLE) {
             l = parse_upsample(options, params, net);
@@ -1486,7 +1512,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             l = parse_shortcut(options, params, net);
             net.layers[count - 1].use_bin_output = 0;
             net.layers[l.index].use_bin_output = 0;
-            net.layers[l.index].keep_delta_gpu = 1;
+            if (count >= last_stop_backward)
+                net.layers[l.index].keep_delta_gpu = 1;
         }else if (lt == SCALE_CHANNELS) {
             l = parse_scale_channels(options, params, net);
             net.layers[count - 1].use_bin_output = 0;
@@ -1590,7 +1617,12 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
 #ifdef GPU
         // futher GPU-memory optimization: net.optimized_memory == 2
         l.optimized_memory = net.optimized_memory;
-        if (net.optimized_memory >= 2 && params.train && l.type != DROPOUT)
+        if (net.optimized_memory == 1 && params.train && l.type != DROPOUT) {
+            if (l.delta_gpu) {
+                cuda_free(l.delta_gpu);
+                l.delta_gpu = NULL;
+            }
+        } else if (net.optimized_memory >= 2 && params.train && l.type != DROPOUT)
         {
             if (l.output_gpu) {
                 cuda_free(l.output_gpu);
@@ -1634,6 +1666,8 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
         l.learning_rate_scale = option_find_float_quiet(options, "learning_rate", 1);
         option_unused(options);
 
+        if (l.stopbackward == 1) printf(" ------- previous layers are frozen ------- \n");
+
         net.layers[count] = l;
         if (l.workspace_size > workspace_size) workspace_size = l.workspace_size;
         if (l.inputs > max_inputs) max_inputs = l.inputs;
@@ -1662,6 +1696,27 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
             avg_counter++;
         }
     }
+
+    if (last_stop_backward > -1) {
+        int k;
+        for (k = 0; k < last_stop_backward; ++k) {
+            layer l = net.layers[k];
+            if (l.keep_delta_gpu) {
+                if (!l.delta) {
+                    net.layers[k].delta = (float*)xcalloc(l.outputs*l.batch, sizeof(float));
+                }
+#ifdef GPU
+                if (!l.delta_gpu) {
+                    net.layers[k].delta_gpu = (float *)cuda_make_array(NULL, l.outputs*l.batch);
+                }
+#endif
+            }
+
+            net.layers[k].onlyforward = 1;
+            net.layers[k].train = 0;
+        }
+    }
+
     free_list(sections);
 
 #ifdef GPU
@@ -1686,6 +1741,9 @@ network parse_network_cfg_custom(char *filename, int batch, int time_steps)
                     else cuda_free(l.delta_gpu);
                 }
                 l.delta_gpu = net.global_delta_gpu;
+            }
+            else {
+                if (!l.delta_gpu) l.delta_gpu = (float *)cuda_make_array(NULL, l.outputs*l.batch);
             }
 
             // maximum optimization

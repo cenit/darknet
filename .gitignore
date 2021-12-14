@@ -15,6 +15,7 @@ temp/
 *.png
 */vcpkg-manifest-install.log
 build.log
+__pycache__/
 
 # OS Generated #
 .DS_Store*
@@ -40,6 +41,7 @@ src/version.h
 *.dll
 *.lib
 *.dylib
+*.pyc
 lib/
 share/
 include/darknet/

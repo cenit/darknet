@@ -1,26 +1,13 @@
-#!python3
+#!/usr/bin/env python3
+
 """
 Python 3 wrapper for identifying objects in images
 
-Requires DLL compilation
-
-Both the GPU and no-GPU version should be compiled; the no-GPU version should be renamed "yolo_cpp_dll_nogpu.dll".
-
-On a GPU system, you can force CPU evaluation by any of:
-
-- Set global variable DARKNET_FORCE_CPU to True
-- Set environment variable CUDA_VISIBLE_DEVICES to -1
-- Set environment variable "FORCE_CPU" to "true"
-- Set environment variable "DARKNET_PATH" to path darknet lib .so (for Linux)
-
+Running the script requires opencv-python to be installed (`pip install opencv-python`)
 Directly viewing or returning bounding-boxed images requires scikit-image to be installed (`pip install scikit-image`)
-
-Original *nix 2.7: https://github.com/pjreddie/darknet/blob/0f110834f4e18b30d5f101bf8f1724c34b7b83db/python/darknet.py
-Windows Python 2.7 version: https://github.com/AlexeyAB/darknet/blob/fc496d52bf22a0bb257300d3c79be9cd80e722cb/build/darknet/x64/darknet.py
-
-@author: Philip Kahn
-@date: 20180503
+Use pip3 instead of pip on some systems to be sure to install modules for python3
 """
+
 from ctypes import *
 import math
 import random
@@ -37,6 +24,7 @@ class BOX(Structure):
 class DETECTION(Structure):
     _fields_ = [("bbox", BOX),
                 ("classes", c_int),
+                ("best_class_idx", c_int),
                 ("prob", POINTER(c_float)),
                 ("mask", POINTER(c_float)),
                 ("objectness", c_float),
@@ -146,6 +134,56 @@ def decode_detection(detections):
         decoded.append((str(label), confidence, bbox))
     return decoded
 
+# https://www.pyimagesearch.com/2015/02/16/faster-non-maximum-suppression-python/
+# Malisiewicz et al.
+def non_max_suppression_fast(detections, overlap_thresh):
+    boxes = []
+    for detection in detections:
+        _, _, _, (x, y, w, h) = detection
+        x1 = x - w / 2
+        y1 = y - h / 2
+        x2 = x + w / 2
+        y2 = y + h / 2
+        boxes.append(np.array([x1, y1, x2, y2]))
+    boxes_array = np.array(boxes)
+
+    # initialize the list of picked indexes
+    pick = []
+    # grab the coordinates of the bounding boxes
+    x1 = boxes_array[:, 0]
+    y1 = boxes_array[:, 1]
+    x2 = boxes_array[:, 2]
+    y2 = boxes_array[:, 3]
+    # compute the area of the bounding boxes and sort the bounding
+    # boxes by the bottom-right y-coordinate of the bounding box
+    area = (x2 - x1 + 1) * (y2 - y1 + 1)
+    idxs = np.argsort(y2)
+    # keep looping while some indexes still remain in the indexes
+    # list
+    while len(idxs) > 0:
+        # grab the last index in the indexes list and add the
+        # index value to the list of picked indexes
+        last = len(idxs) - 1
+        i = idxs[last]
+        pick.append(i)
+        # find the largest (x, y) coordinates for the start of
+        # the bounding box and the smallest (x, y) coordinates
+        # for the end of the bounding box
+        xx1 = np.maximum(x1[i], x1[idxs[:last]])
+        yy1 = np.maximum(y1[i], y1[idxs[:last]])
+        xx2 = np.minimum(x2[i], x2[idxs[:last]])
+        yy2 = np.minimum(y2[i], y2[idxs[:last]])
+        # compute the width and height of the bounding box
+        w = np.maximum(0, xx2 - xx1 + 1)
+        h = np.maximum(0, yy2 - yy1 + 1)
+        # compute the ratio of overlap
+        overlap = (w * h) / area[idxs[:last]]
+        # delete all indexes from the index list that have
+        idxs = np.delete(idxs, np.concatenate(([last],
+                                               np.where(overlap > overlap_thresh)[0])))
+        # return only the bounding boxes that were picked using the
+        # integer data type
+    return [detections[i] for i in pick]
 
 def remove_negatives(detections, class_names, num):
     """
@@ -158,6 +196,21 @@ def remove_negatives(detections, class_names, num):
                 bbox = detections[j].bbox
                 bbox = (bbox.x, bbox.y, bbox.w, bbox.h)
                 predictions.append((name, detections[j].prob[idx], (bbox)))
+    return predictions
+
+
+def remove_negatives_faster(detections, class_names, num):
+    """
+    Faster version of remove_negatives (very useful when using yolo9000)
+    """
+    predictions = []
+    for j in range(num):
+        if detections[j].best_class_idx == -1:
+            continue
+        name = class_names[detections[j].best_class_idx]
+        bbox = detections[j].bbox
+        bbox = (bbox.x, bbox.y, bbox.w, bbox.h)
+        predictions.append((name, detections[j].prob[detections[j].best_class_idx], bbox))
     return predictions
 
 
@@ -178,51 +231,17 @@ def detect_image(network, class_names, image, thresh=.5, hier_thresh=.5, nms=.45
     return sorted(predictions, key=lambda x: x[1])
 
 
-#  lib = CDLL("/home/pjreddie/documents/darknet/libdarknet.so", RTLD_GLOBAL)
-#  lib = CDLL("libdarknet.so", RTLD_GLOBAL)
-hasGPU = True
-if os.name == "nt":
+if os.name == "posix":
+    cwd = os.path.dirname(__file__)
+    lib = CDLL(cwd + "/libdarknet.so", RTLD_GLOBAL)
+elif os.name == "nt":
     cwd = os.path.dirname(__file__)
     os.environ['PATH'] = cwd + ';' + os.environ['PATH']
-    winGPUdll = os.path.join(cwd, "yolo_cpp_dll.dll")
-    winNoGPUdll = os.path.join(cwd, "yolo_cpp_dll_nogpu.dll")
-    envKeys = list()
-    for k, v in os.environ.items():
-        envKeys.append(k)
-    try:
-        try:
-            tmp = os.environ["FORCE_CPU"].lower()
-            if tmp in ["1", "true", "yes", "on"]:
-                raise ValueError("ForceCPU")
-            else:
-                print("Flag value {} not forcing CPU mode".format(tmp))
-        except KeyError:
-            # We never set the flag
-            if 'CUDA_VISIBLE_DEVICES' in envKeys:
-                if int(os.environ['CUDA_VISIBLE_DEVICES']) < 0:
-                    raise ValueError("ForceCPU")
-            try:
-                global DARKNET_FORCE_CPU
-                if DARKNET_FORCE_CPU:
-                    raise ValueError("ForceCPU")
-            except NameError as cpu_error:
-                print(cpu_error)
-        if not os.path.exists(winGPUdll):
-            raise ValueError("NoDLL")
-        lib = CDLL(winGPUdll, RTLD_GLOBAL)
-    except (KeyError, ValueError):
-        hasGPU = False
-        if os.path.exists(winNoGPUdll):
-            lib = CDLL(winNoGPUdll, RTLD_GLOBAL)
-            print("Notice: CPU-only mode")
-        else:
-            # Try the other way, in case no_gpu was compile but not renamed
-            lib = CDLL(winGPUdll, RTLD_GLOBAL)
-            print("Environment variables indicated a CPU run, but we didn't find {}. Trying a GPU run anyway.".format(winNoGPUdll))
+    lib = CDLL("darknet.dll", RTLD_GLOBAL)
 else:
-    lib = CDLL(os.path.join(
-        os.environ.get('DARKNET_PATH', './'),
-        "libdarknet.so"), RTLD_GLOBAL)
+    print("Unsupported OS")
+    exit
+
 lib.network_width.argtypes = [c_void_p]
 lib.network_width.restype = c_int
 lib.network_height.argtypes = [c_void_p]
@@ -235,10 +254,7 @@ predict = lib.network_predict_ptr
 predict.argtypes = [c_void_p, POINTER(c_float)]
 predict.restype = POINTER(c_float)
 
-if hasGPU:
-    set_gpu = lib.cuda_set_device
-    set_gpu.argtypes = [c_int]
-
+set_gpu = lib.cuda_set_device
 init_cpu = lib.init_cpu
 
 make_image = lib.make_image

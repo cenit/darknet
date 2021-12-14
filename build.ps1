@@ -1,5 +1,95 @@
 #!/usr/bin/env pwsh
 
+<#
+
+.SYNOPSIS
+        build
+        Created By: Stefano Sinigardi
+        Created Date: February 18, 2019
+        Last Modified Date: November 10, 2021
+
+.DESCRIPTION
+Build darknet using CMake, trying to properly setup the environment around compiler
+
+.PARAMETER DisableInteractive
+Disable script interactivity (useful for CI runs)
+
+.PARAMETER EnableCUDA
+Enable CUDA feature
+
+.PARAMETER EnableCUDNN
+Enable CUDNN feature
+
+.PARAMETER EnableOPENCV
+Build darknet linking to OpenCV
+
+.PARAMETER EnableOPENCV_CUDA
+Use a CUDA-enabled OpenCV build
+
+.PARAMETER UseVCPKG
+Use VCPKG to build darknet dependencies. Clone it if not already found on system
+
+.PARAMETER InstallDARKNETthroughVCPKG
+Use VCPKG to install darknet thanks to the port integrated in it
+
+.PARAMETER InstallDARKNETdependenciesThroughVCPKGManifest
+Use VCPKG to install darknet dependencies using vcpkg manifest feature
+
+.PARAMETER ForceVCPKGDarknetHEAD
+Install darknet from vcpkg and force it to HEAD version, not latest port release
+
+.PARAMETER DoNotUpdateVCPKG
+Do not update vcpkg before running the build (valid only if vcpkg is cloned by this script or the version found on the system is git-enabled)
+
+.PARAMETER DoNotUpdateDARKNET
+Do not update darknet before running the build (valid only if darknet is git-enabled)
+
+.PARAMETER DoNotDeleteBuildFolder
+Do not delete temporary cmake build folder at the end of the script
+
+.PARAMETER DoNotSetupVS
+Do not setup VisualStudio environment using the vcvars script
+
+.PARAMETER DoNotUseNinja
+Do not use Ninja for build
+
+.PARAMETER ForceCPP
+Force building darknet using C++ compiler also for plain C code
+
+.PARAMETER ForceStaticLib
+Create darknet library as static instead of the default linking mode of your system
+
+.PARAMETER ForceVCPKGCacheRemoval
+Force clean up of the local vcpkg binary cache before building
+
+.PARAMETER DoNotDeleteBuildtreesFolder
+Do not delete vcpkg buildtrees temp folder at the end of the script
+
+.PARAMETER ForceSetupVS
+Forces Visual Studio setup, also on systems on which it would not have been enabled automatically
+
+.PARAMETER EnableCSharpWrapper
+Enables building C# darknet wrapper
+
+.PARAMETER DownloadWeights
+Download pre-trained weight files
+
+.PARAMETER ForceGCCVersion
+Force a specific GCC version
+
+.PARAMETER ForceOpenCVVersion
+Force a specific OpenCV version (valid only with vcpkg-enabled builds)
+
+.PARAMETER NumberOfBuildWorkers
+Forces a specific number of threads for parallel building
+
+.PARAMETER AdditionalBuildSetup
+Additional setup parameters to manually pass to CMake
+
+.EXAMPLE
+.\build -DisableInteractive -DoNotDeleteBuildFolder -UseVCPKG
+
+#>
 
 param (
   [switch]$DisableInteractive = $false,
@@ -8,6 +98,9 @@ param (
   [switch]$EnableOPENCV = $false,
   [switch]$EnableOPENCV_CUDA = $false,
   [switch]$UseVCPKG = $false,
+  [switch]$InstallDARKNETthroughVCPKG = $false,
+  [switch]$InstallDARKNETdependenciesThroughVCPKGManifest = $false,
+  [switch]$ForceVCPKGDarknetHEAD = $false,
   [switch]$DoNotUpdateVCPKG = $false,
   [switch]$DoNotUpdateDARKNET = $false,
   [switch]$DoNotDeleteBuildFolder = $false,
@@ -16,15 +109,17 @@ param (
   [switch]$ForceCPP = $false,
   [switch]$ForceStaticLib = $false,
   [switch]$ForceVCPKGCacheRemoval = $false,
+  [switch]$DoNotDeleteBuildtreesFolder = $false,
   [switch]$ForceSetupVS = $false,
   [switch]$EnableCSharpWrapper = $false,
+  [switch]$DownloadWeights = $false,
   [Int32]$ForceGCCVersion = 0,
   [Int32]$ForceOpenCVVersion = 0,
   [Int32]$NumberOfBuildWorkers = 8,
   [string]$AdditionalBuildSetup = ""  # "-DCMAKE_CUDA_ARCHITECTURES=30"
 )
 
-$build_ps1_version = "0.9.5"
+$build_ps1_version = "0.9.7"
 
 $ErrorActionPreference = "SilentlyContinue"
 Stop-Transcript | out-null
@@ -151,10 +246,28 @@ if ($PSVersionTable.PSVersion.Major -lt 5) {
 
 if ($IsLinux -or $IsMacOS) {
   $bootstrap_ext = ".sh"
+  $exe_ext = ""
 }
 elseif ($IsWindows -or $IsWindowsPowerShell) {
   $bootstrap_ext = ".bat"
+  $exe_ext = ".exe"
 }
+
+if ($InstallDARKNETdependenciesThroughVCPKGManifest -and -not $InstallDARKNETthroughVCPKG) {
+  Write-Host "You requested darknet dependencies to be installed by vcpkg in manifest mode but you didn't enable installation through vcpkg, doing that for you"
+  $InstallDARKNETthroughVCPKG = $true
+}
+
+if ($InstallDARKNETthroughVCPKG -and -not $UseVCPKG) {
+  Write-Host "You requested darknet to be installed by vcpkg but you didn't enable vcpkg, doing that for you"
+  $UseVCPKG = $true
+}
+
+if ($InstallDARKNETthroughVCPKG -and -not $EnableOPENCV) {
+  Write-Host "You requested darknet to be installed by vcpkg but you didn't enable OpenCV, doing that for you"
+  $EnableOPENCV = $true
+}
+
 if ($UseVCPKG) {
   Write-Host "vcpkg bootstrap script: bootstrap-vcpkg${bootstrap_ext}"
 }
@@ -368,6 +481,14 @@ function getLatestVisualStudioWithDesktopWorkloadPath() {
       }
     }
     if (!$installationPath) {
+      Write-Host "Warning: no full Visual Studio setup has been found, extending search to include also pre-release installations" -ForegroundColor Yellow
+      $output = & $vswhereExe -prerelease -products * -latest -format xml
+      [xml]$asXml = $output
+      foreach ($instance in $asXml.instances.instance) {
+        $installationPath = $instance.InstallationPath -replace "\\$" # Remove potential trailing backslash
+      }
+    }
+    if (!$installationPath) {
       MyThrow("Could not locate any installation of Visual Studio")
     }
   }
@@ -390,6 +511,14 @@ function getLatestVisualStudioWithDesktopWorkloadVersion() {
     if (!$installationVersion) {
       Write-Host "Warning: no full Visual Studio setup has been found, extending search to include also partial installations" -ForegroundColor Yellow
       $output = & $vswhereExe -products * -latest -format xml
+      [xml]$asXml = $output
+      foreach ($instance in $asXml.instances.instance) {
+        $installationVersion = $instance.installationVersion
+      }
+    }
+    if (!$installationVersion) {
+      Write-Host "Warning: no full Visual Studio setup has been found, extending search to include also pre-release installations" -ForegroundColor Yellow
+      $output = & $vswhereExe -prerelease -products * -latest -format xml
       [xml]$asXml = $output
       foreach ($instance in $asXml.instances.instance) {
         $installationVersion = $instance.installationVersion
@@ -482,6 +611,11 @@ if ($UseVCPKG -and ($vcpkg_path.length -gt 40) -and ($IsWindows -or $IsWindowsPo
 
 if ($ForceVCPKGCacheRemoval -and (-Not $UseVCPKG)) {
   Write-Host "VCPKG is not enabled, so local vcpkg binary cache will not be deleted even if requested" -ForegroundColor Yellow
+}
+
+if ($UseVCPKG -and (-Not $DoNotDeleteBuildtreesFolder)) {
+  Write-Host "Cleaning folder buildtrees inside vcpkg" -ForegroundColor Yellow
+  Remove-Item -Force -Recurse -ErrorAction SilentlyContinue "$env:VCPKG_ROOT/buildtrees"
 }
 
 if (($ForceOpenCVVersion -eq 2) -and $UseVCPKG) {
@@ -606,42 +740,119 @@ if ($EnableCSharpWrapper) {
   $AdditionalBuildSetup = $AdditionalBuildSetup + " -DENABLE_CSHARP_WRAPPER:BOOL=ON"
 }
 
-$build_folder = "./build_release"
-if (-Not $DoNotDeleteBuildFolder) {
-  Write-Host "Removing folder $build_folder" -ForegroundColor Yellow
-  Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $build_folder
+if ($InstallDARKNETthroughVCPKG) {
+  if ($ForceVCPKGDarknetHEAD) {
+    $headMode = " --head "
+  }
+  $features = "opencv-base"
+  $feature_manifest_opencv = "--x-feature=opencv-base"
+  if ($EnableCUDA) {
+    $features = $features + ",cuda"
+    $feature_manifest_cuda = "--x-feature=cuda"
+  }
+  if ($EnableCUDNN) {
+    $features = $features + ",cudnn"
+    $feature_manifest_cudnn = "--x-feature=cudnn"
+  }
+  if (-not (Test-Path "${env:VCPKG_ROOT}/vcpkg${exe_ext}")) {
+    $proc = Start-Process -NoNewWindow -PassThru -FilePath ${env:VCPKG_ROOT}/bootstrap-vcpkg${bootstrap_ext} -ArgumentList "-disableMetrics"
+    $handle = $proc.Handle
+    $proc.WaitForExit()
+    $exitCode = $proc.ExitCode
+    if (-Not ($exitCode -eq 0)) {
+      MyThrow("Bootstrapping vcpkg failed! Exited with error code $exitCode.")
+    }
+  }
+  if ($InstallDARKNETdependenciesThroughVCPKGManifest) {
+    Write-Host "Running vcpkg in manifest mode to install darknet dependencies"
+    Write-Host "vcpkg install --x-no-default-features $feature_manifest_opencv $feature_manifest_cuda $feature_manifest_cudnn $headMode"
+    $proc = Start-Process -NoNewWindow -PassThru -FilePath "${env:VCPKG_ROOT}/vcpkg${exe_ext}" -ArgumentList " install --x-no-default-features $feature_manifest_opencv $feature_manifest_cuda $feature_manifest_cudnn $headMode "
+    $handle = $proc.Handle
+    $proc.WaitForExit()
+    $exitCode = $proc.ExitCode
+    if (-Not ($exitCode -eq 0)) {
+      MyThrow("Installing darknet through vcpkg failed! Exited with error code $exitCode.")
+    }
+  }
+  else {
+    Write-Host "Running vcpkg to install darknet"
+    Write-Host "vcpkg install darknet[${features}] $headMode --recurse"
+    Push-Location ${env:VCPKG_ROOT}
+    if ($ForceVCPKGDarknetHEAD) {
+      $proc = Start-Process -NoNewWindow -PassThru -FilePath "${env:VCPKG_ROOT}/vcpkg${exe_ext}" -ArgumentList " --feature-flags=-manifests remove darknet --recurse "
+      $handle = $proc.Handle
+      $proc.WaitForExit()
+      $exitCode = $proc.ExitCode
+      if (-Not ($exitCode -eq 0)) {
+        MyThrow("Removing darknet through vcpkg failed! Exited with error code $exitCode.")
+      }
+    }
+    $proc = Start-Process -NoNewWindow -PassThru -FilePath "${env:VCPKG_ROOT}/vcpkg${exe_ext}" -ArgumentList " --feature-flags=-manifests upgrade --no-dry-run "
+    $handle = $proc.Handle
+    $proc.WaitForExit()
+    $exitCode = $proc.ExitCode
+    if (-Not ($exitCode -eq 0)) {
+      MyThrow("Upgrading vcpkg installed ports failed! Exited with error code $exitCode.")
+    }
+    $proc = Start-Process -NoNewWindow -PassThru -FilePath "${env:VCPKG_ROOT}/vcpkg${exe_ext}" -ArgumentList " --feature-flags=-manifests install darknet[${features}] $headMode --recurse "  # "-manifest"  disables the manifest feature, so that if vcpkg is a subfolder of darknet, the vcpkg.json inside darknet folder does not trigger errors due to automatic manifest mode
+    $handle = $proc.Handle
+    $proc.WaitForExit()
+    $exitCode = $proc.ExitCode
+    if (-Not ($exitCode -eq 0)) {
+      MyThrow("Installing darknet dependencies through vcpkg failed! Exited with error code $exitCode.")
+    }
+    Pop-Location
+  }
+}
+else {
+  $build_folder = "./build_release"
+  if (-Not $DoNotDeleteBuildFolder) {
+    Write-Host "Removing folder $build_folder" -ForegroundColor Yellow
+    Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $build_folder
+  }
+  New-Item -Path $build_folder -ItemType directory -Force | Out-Null
+  Set-Location $build_folder
+  $cmake_args = "-G `"$generator`" ${AdditionalBuildSetup} -S .."
+  Write-Host "Configuring CMake project" -ForegroundColor Green
+  Write-Host "CMake args: $cmake_args"
+  $proc = Start-Process -NoNewWindow -PassThru -FilePath $CMAKE_EXE -ArgumentList $cmake_args
+  $handle = $proc.Handle
+  $proc.WaitForExit()
+  $exitCode = $proc.ExitCode
+  if (-Not ($exitCode -eq 0)) {
+    MyThrow("Config failed! Exited with error code $exitCode.")
+  }
+  Write-Host "Building CMake project" -ForegroundColor Green
+  $proc = Start-Process -NoNewWindow -PassThru -FilePath $CMAKE_EXE -ArgumentList "--build . ${selectConfig} --parallel ${NumberOfBuildWorkers} --target install"
+  $handle = $proc.Handle
+  $proc.WaitForExit()
+  $exitCode = $proc.ExitCode
+  if (-Not ($exitCode -eq 0)) {
+    MyThrow("Config failed! Exited with error code $exitCode.")
+  }
+  Remove-Item -Force -ErrorAction SilentlyContinue DarknetConfig.cmake
+  Remove-Item -Force -ErrorAction SilentlyContinue DarknetConfigVersion.cmake
+  $dllfiles = Get-ChildItem ./${dllfolder}/*.dll
+  if ($dllfiles) {
+    Copy-Item $dllfiles ..
+  }
+  Set-Location ..
+  Copy-Item cmake/Modules/*.cmake share/darknet/
+  Pop-Location
 }
 
-New-Item -Path $build_folder -ItemType directory -Force | Out-Null
-Set-Location $build_folder
-$cmake_args = "-G `"$generator`" ${AdditionalBuildSetup} -S .."
-Write-Host "Configuring CMake project" -ForegroundColor Green
-Write-Host "CMake args: $cmake_args"
-$proc = Start-Process -NoNewWindow -PassThru -FilePath $CMAKE_EXE -ArgumentList $cmake_args
-$handle = $proc.Handle
-$proc.WaitForExit()
-$exitCode = $proc.ExitCode
-if (-Not ($exitCode -eq 0)) {
-  MyThrow("Config failed! Exited with error code $exitCode.")
+if ($UseVCPKG -and (-Not $DoNotDeleteBuildtreesFolder)) {
+  Write-Host "Cleaning folder buildtrees inside vcpkg" -ForegroundColor Yellow
+  Remove-Item -Force -Recurse -ErrorAction SilentlyContinue "$env:VCPKG_ROOT/buildtrees"
 }
-Write-Host "Building CMake project" -ForegroundColor Green
-$proc = Start-Process -NoNewWindow -PassThru -FilePath $CMAKE_EXE -ArgumentList "--build . ${selectConfig} --parallel ${NumberOfBuildWorkers} --target install"
-$handle = $proc.Handle
-$proc.WaitForExit()
-$exitCode = $proc.ExitCode
-if (-Not ($exitCode -eq 0)) {
-  MyThrow("Config failed! Exited with error code $exitCode.")
-}
-Remove-Item -Force -ErrorAction SilentlyContinue DarknetConfig.cmake
-Remove-Item -Force -ErrorAction SilentlyContinue DarknetConfigVersion.cmake
-$dllfiles = Get-ChildItem ./${dllfolder}/*.dll
-if ($dllfiles) {
-  Copy-Item $dllfiles ..
-}
-Set-Location ..
-Copy-Item cmake/Modules/*.cmake share/darknet/
+
 Write-Host "Build complete!" -ForegroundColor Green
-Pop-Location
+
+if ($DownloadWeights) {
+  Write-Host "Downloading weights..." -ForegroundColor Yellow
+  & $PSScriptRoot/scripts/download_weights.ps1
+  Write-Host "Weights downloaded" -ForegroundColor Green
+}
 
 if ($vcpkg_root_set_by_this_script) {
   $env:VCPKG_ROOT = $null
