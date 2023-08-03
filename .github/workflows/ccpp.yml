@@ -29,7 +29,7 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev
+      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
 
     - name: 'Install CUDA'
       run: ${{ github.workspace }}/scripts/deploy-cuda.sh
@@ -67,7 +67,7 @@ jobs:
         CUDA_PATH: "/usr/local/cuda"
         CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
         LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -DisableInteractive -DoNotUpdateDARKNET
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -DisableInteractive -DoNotUpdateTOOL
 
     - uses: actions/upload-artifact@v2
       with:
@@ -97,7 +97,7 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev
+      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
 
     - name: 'Install CUDA'
       run: ${{ github.workspace }}/scripts/deploy-cuda.sh
@@ -135,7 +135,7 @@ jobs:
         CUDA_PATH: "/usr/local/cuda"
         CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
         LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 3 -DisableInteractive -DoNotUpdateDARKNET
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 3 -DisableInteractive -DoNotUpdateTOOL
 
 
   ubuntu-vcpkg-opencv2-cuda:
@@ -148,7 +148,7 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev
+      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
 
     - name: 'Install CUDA'
       run: ${{ github.workspace }}/scripts/deploy-cuda.sh
@@ -186,7 +186,7 @@ jobs:
         CUDA_PATH: "/usr/local/cuda"
         CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
         LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 2 -DisableInteractive -DoNotUpdateDARKNET
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 2 -DisableInteractive -DoNotUpdateTOOL
 
 
   ubuntu-setup-sh:
@@ -228,7 +228,7 @@ jobs:
       if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled }}
 
     - name: Install dependencies
-      run: brew install libomp yasm nasm
+      run: brew install libomp yasm nasm pkg-config
 
     - uses: lukka/get-cmake@latest
 
@@ -253,7 +253,7 @@ jobs:
 
     - name: 'Build'
       shell: pwsh
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateDARKNET
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateTOOL
 
     - uses: actions/upload-artifact@v2
       with:
@@ -305,7 +305,7 @@ jobs:
 
     - name: 'Build'
       shell: pwsh
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateDARKNET
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -ForceLocalVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateTOOL
 
     - uses: actions/upload-artifact@v2
       with:
