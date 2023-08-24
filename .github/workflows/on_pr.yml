@@ -9,7 +9,7 @@ jobs:
   ubuntu-vcpkg-opencv4-cuda:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: lukka/get-cmake@latest
 
@@ -50,7 +50,7 @@ jobs:
   ubuntu-vcpkg-opencv3-cuda:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: lukka/get-cmake@latest
 
@@ -91,7 +91,7 @@ jobs:
   ubuntu-vcpkg-opencv2-cuda:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: lukka/get-cmake@latest
 
@@ -132,7 +132,7 @@ jobs:
   ubuntu-setup-sh:
     runs-on: ubuntu-20.04
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: 'Setup vcpkg and NuGet artifacts backend'
       shell: bash
@@ -151,7 +151,7 @@ jobs:
   osx-vcpkg:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: Install dependencies
       run: brew install libomp yasm nasm pkg-config
@@ -175,7 +175,7 @@ jobs:
   win-vcpkg:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - uses: lukka/get-cmake@latest
 
@@ -196,7 +196,7 @@ jobs:
   win-setup-ps1:
     runs-on: windows-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
 
     - name: 'Setup vcpkg and NuGet artifacts backend'
       shell: bash

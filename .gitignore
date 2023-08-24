@@ -20,6 +20,7 @@ opencv/
 convnet/
 decaf/
 submission/
+cfg/
 temp/
 build/darknet/*
 build_*/
@@ -30,9 +31,15 @@ vcpkg_installed/
 !build/darknet/YoloWrapper.cs
 .fuse*
 *.weights
-*.out
-*.csv
-*.png
+build/*.cmake
+build/*.ninja
+build/*.txt
+build/*.json
+build/CMakeFiles/
+build/detect_cuda_compute_capabilities.cu
+build/.ninja_deps
+build/.ninja_log
+build/Makefile
 */vcpkg-manifest-install.log
 build.log
 __pycache__/
@@ -47,21 +54,11 @@ Thumbs.db
 # IDE generated #
 .vs/
 .vscode/
-.editorconfig
 
 # Managed by CMake
 src/version.h
 
 # Build artifacts
-*.o
-*.a
-*.dSYM
-*.so
-*.exe
-*.dll
-*.lib
-*.dylib
-*.pyc
 lib/
 share/
 include/darknet/
@@ -69,8 +66,3 @@ uselib
 uselib_track
 darknet
 vcpkg/
-build*/
-vcpkg_installed/
-*/vcpkg-manifest-install.log
-ninja/
-ninja.zip
