@@ -1,6 +1,17 @@
 // Oh boy, why am I about to do this....
 #ifndef NETWORK_H
 #define NETWORK_H
+
+/*
+ * Necessary in C++ to get format macros out of inttypes.h
+ */
+#ifdef __cplusplus
+#ifndef __STDC_FORMAT_MACROS
+#define __STDC_FORMAT_MACROS 1
+#endif
+#endif
+#include <inttypes.h>
+
 #include "darknet.h"
 
 #include <stdint.h>
@@ -96,6 +107,7 @@ float train_networks(network *nets, int n, data d, int interval);
 void sync_nets(network *nets, int n, int interval);
 float train_network_datum_gpu(network net, float *x, float *y);
 float *network_predict_gpu(network net, float *input);
+float *network_predict_gpu_gl_texture(network net, uint32_t texture_id);
 float * get_network_output_gpu_layer(network net, int i);
 float * get_network_delta_gpu_layer(network net, int i);
 float *get_network_output_gpu(network net);
