@@ -6,7 +6,7 @@ env:
   VCPKG_BINARY_SOURCES: 'clear;nuget,vcpkgbinarycache,read'
 
 jobs:
-  ubuntu-vcpkg-opencv4-cuda:
+  ubuntu-vcpkg:
     runs-on: ubuntu-20.04
     steps:
     - uses: actions/checkout@v3
@@ -16,7 +16,9 @@ jobs:
     - name: Update apt
       run: sudo apt update
     - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
+      run: sudo apt-get install -y --no-install-recommends yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
+    - name: Clean downloads
+      run: sudo apt-get clean
 
     - name: 'Install CUDA'
       run: ${{ github.workspace }}/scripts/deploy-cuda.sh
@@ -31,7 +33,7 @@ jobs:
     - name: 'Setup vcpkg and NuGet artifacts backend'
       shell: bash
       run: >
-        git clone https://github.com/microsoft/vcpkg ;
+        git clone --depth 1 https://github.com/microsoft/vcpkg ;
         ./vcpkg/bootstrap-vcpkg.sh ;
         mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
@@ -47,107 +49,6 @@ jobs:
       run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -DisableInteractive -DoNotUpdateTOOL
 
 
-  ubuntu-vcpkg-opencv3-cuda:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: lukka/get-cmake@latest
-
-    - name: Update apt
-      run: sudo apt update
-    - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
-
-    - name: 'Install CUDA'
-      run: ${{ github.workspace }}/scripts/deploy-cuda.sh
-
-    - name: 'Create softlinks for CUDA'
-      run: |
-        source ${{ github.workspace }}/scripts/requested_cuda_version.sh
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so.1
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/libcuda.so.1
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/libcuda.so
-
-    - name: 'Setup vcpkg and NuGet artifacts backend'
-      shell: bash
-      run: >
-        git clone https://github.com/microsoft/vcpkg ;
-        ./vcpkg/bootstrap-vcpkg.sh ;
-        mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
-        -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json
-
-    - name: 'Build'
-      shell: pwsh
-      env:
-        CUDACXX: "/usr/local/cuda/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
-        LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 3 -DisableInteractive -DoNotUpdateTOOL
-
-
-  ubuntu-vcpkg-opencv2-cuda:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - uses: lukka/get-cmake@latest
-
-    - name: Update apt
-      run: sudo apt update
-    - name: Install dependencies
-      run: sudo apt-get install -y yasm nasm gperf libgles2-mesa-dev libx11-dev libxft-dev libxext-dev libxrandr-dev libxi-dev libxcursor-dev libxdamage-dev libxinerama-dev libdbus-1-dev libxtst-dev
-
-    - name: 'Install CUDA'
-      run: ${{ github.workspace }}/scripts/deploy-cuda.sh
-
-    - name: 'Create softlinks for CUDA'
-      run: |
-        source ${{ github.workspace }}/scripts/requested_cuda_version.sh
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so.1
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/libcuda.so.1
-        sudo ln -s /usr/local/cuda-${CUDA_VERSION}/lib64/stubs/libcuda.so /usr/local/cuda-${CUDA_VERSION}/lib64/libcuda.so
-
-    - name: 'Setup vcpkg and NuGet artifacts backend'
-      shell: bash
-      run: >
-        git clone https://github.com/microsoft/vcpkg ;
-        ./vcpkg/bootstrap-vcpkg.sh ;
-        mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
-        -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json
-
-    - name: 'Build'
-      shell: pwsh
-      env:
-        CUDACXX: "/usr/local/cuda/bin/nvcc"
-        CUDA_PATH: "/usr/local/cuda"
-        CUDA_TOOLKIT_ROOT_DIR: "/usr/local/cuda"
-        LD_LIBRARY_PATH: "/usr/local/cuda/lib64:/usr/local/cuda/lib64/stubs:$LD_LIBRARY_PATH"
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -EnableCUDA -EnableCUDNN -ForceOpenCVVersion 2 -DisableInteractive -DoNotUpdateTOOL
-
-
-  ubuntu-setup-sh:
-    runs-on: ubuntu-20.04
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: 'Setup vcpkg and NuGet artifacts backend'
-      shell: bash
-      run: >
-        git clone https://github.com/microsoft/vcpkg ;
-        ./vcpkg/bootstrap-vcpkg.sh ;
-        mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
-        -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json
-
-    - name: 'Setup'
-      shell: bash
-      run: ${{ github.workspace }}/scripts/setup.sh -InstallTOOLS -InstallCUDA -BypassDRIVER
-
-
   osx-vcpkg:
     runs-on: macos-latest
     steps:
@@ -161,7 +62,7 @@ jobs:
     - name: 'Setup vcpkg and NuGet artifacts backend'
       shell: bash
       run: >
-        git clone https://github.com/microsoft/vcpkg ;
+        git clone --depth 1 https://github.com/microsoft/vcpkg ;
         ./vcpkg/bootstrap-vcpkg.sh ;
         mono $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
@@ -182,7 +83,7 @@ jobs:
     - name: 'Setup vcpkg and NuGet artifacts backend'
       shell: bash
       run: >
-        git clone https://github.com/microsoft/vcpkg ;
+        git clone --depth 1 https://github.com/microsoft/vcpkg ;
         ./vcpkg/bootstrap-vcpkg.sh ;
         $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
         -Name "vcpkgbinarycache"
@@ -191,22 +92,3 @@ jobs:
     - name: 'Build'
       shell: pwsh
       run: ${{ github.workspace }}/build.ps1 -UseVCPKG -ForceLocalVCPKG -DoNotUpdateVCPKG -EnableOPENCV -DisableInteractive -DoNotUpdateTOOL
-
-
-  win-setup-ps1:
-    runs-on: windows-latest
-    steps:
-    - uses: actions/checkout@v3
-
-    - name: 'Setup vcpkg and NuGet artifacts backend'
-      shell: bash
-      run: >
-        git clone https://github.com/microsoft/vcpkg ;
-        ./vcpkg/bootstrap-vcpkg.sh ;
-        $(./vcpkg/vcpkg fetch nuget | tail -n 1) sources add
-        -Name "vcpkgbinarycache"
-        -Source http://93.49.111.10:5555/v3/index.json
-
-    - name: 'Setup'
-      shell: pwsh
-      run: ${{ github.workspace }}/scripts/setup.ps1 -InstallCUDA
