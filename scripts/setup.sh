@@ -89,7 +89,7 @@ elif [[ $(cut -f2 <<< $(lsb_release -i)) == "Ubuntu" ]]; then
     sudo apt-get install -y --no-install-recommends powershell
     sudo apt-get install -y --no-install-recommends curl zip unzip tar
     sudo apt-get install -y --no-install-recommends bison
-    sudo apt-get install -y --no-install-recommends automake autoconf libtool pkg-config autoconf-archive
+    sudo apt-get install -y --no-install-recommends automake autoconf libtool pkg-config autoconf-archive autopoint
     sudo apt-get clean
   fi
 else
