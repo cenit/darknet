@@ -13,7 +13,7 @@
 #include <float.h>
 #include <limits.h>
 #include "darkunistd.h"
-#ifdef WIN32
+#ifdef _WIN32
 #include "gettimeofday.h"
 #else
 #include <sys/time.h>
@@ -340,7 +340,7 @@ void top_k(float *a, int n, int k, int *index)
 
 void log_backtrace()
 {
-#ifndef WIN32
+#ifndef _WIN32
     void * buffer[50];
     int count = backtrace(buffer, sizeof(buffer));
     char **symbols = backtrace_symbols(buffer, count);
@@ -943,24 +943,24 @@ int rand_int_fast(int min, int max)
 unsigned int random_gen()
 {
     unsigned int rnd = 0;
-#ifdef WIN32
+#ifdef _WIN32
     rand_s(&rnd);
-#else   // WIN32
+#else   // _WIN32
     rnd = rand();
 #if (RAND_MAX < 65536)
         rnd = rand()*(RAND_MAX + 1) + rnd;
 #endif  //(RAND_MAX < 65536)
-#endif  // WIN32
+#endif  // _WIN32
     return rnd;
 }
 
 float random_float()
 {
     unsigned int rnd = 0;
-#ifdef WIN32
+#ifdef _WIN32
     rand_s(&rnd);
     return ((float)rnd / (float)UINT_MAX);
-#else   // WIN32
+#else   // _WIN32
 
     rnd = rand();
 #if (RAND_MAX < 65536)
@@ -969,7 +969,7 @@ float random_float()
 #endif  //(RAND_MAX < 65536)
     return ((float)rnd / (float)RAND_MAX);
 
-#endif  // WIN32
+#endif  // _WIN32
 }
 
 float rand_uniform_strong(float min, float max)
@@ -1078,7 +1078,7 @@ boxabs box_to_boxabs(const box* b, const int img_w, const int img_h, const int b
 
 int make_directory(char *path, int mode)
 {
-#ifdef WIN32
+#ifdef _WIN32
     return _mkdir(path);
 #else
     return mkdir(path, mode);
