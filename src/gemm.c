@@ -525,7 +525,7 @@ void transpose_bin(uint32_t *A, uint32_t *B, const int n, const int m,
 
 #if (defined(__AVX__) && defined(__x86_64__)) || (defined(_WIN64) && !defined(__MINGW32__) && !defined(_M_ARM64))
 
-#if (defined(_WIN64) && !defined(__MINGW64__))
+#if (defined(_WIN64) && !defined(__MINGW64__)) && !defined(__clang__)
 #include <intrin.h>
 #include <ammintrin.h>
 #include <immintrin.h>
@@ -549,7 +549,7 @@ static inline float _mm256_extract_float32(__m256 a, const int index) {
     return a.m256_f32[index];
 }
 
-#else    // Linux GCC/Clang
+#else    // Linux (GCC+Clang) or Windows (Clang)
 #include <x86intrin.h>
 #include <ammintrin.h>
 #include <immintrin.h>
