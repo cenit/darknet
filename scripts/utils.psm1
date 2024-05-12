@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 #>
 
-$utils_psm1_version = "1.2.3"
+$utils_psm1_version = "1.3.0"
 $IsWindowsPowerShell = switch ( $PSVersionTable.PSVersion.Major ) {
   5 { $true }
   4 { $true }
@@ -38,6 +38,31 @@ if ($IsWindowsPowerShell -or $IsWindows) {
 
 $64bitPwsh = $([Environment]::Is64BitProcess)
 $64bitOS = $([Environment]::Is64BitOperatingSystem)
+$osArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+switch ($osArchitecture) {
+  "X86" {
+    $vcpkgArchitecture = "x86"
+    $vsArchitecture = "Win32"
+  }
+  "X64" {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+  }
+  "Arm" {
+    $vcpkgArchitecture = "arm"
+    $vsArchitecture = "arm"
+  }
+  "Arm64" {
+    $vcpkgArchitecture = "arm64"
+    $vsArchitecture = "arm64"
+  }
+  default {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+    Write-Output "Unknown architecture. Trying x64"
+  }
+}
+
 
 Push-Location $PSScriptRoot
 $GIT_EXE = Get-Command "git" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
@@ -169,18 +194,18 @@ function getLatestVisualStudioWithDesktopWorkloadVersion([bool]$required = $true
 
 function setupVisualStudio([bool]$required = $true) {
   $CL_EXE = Get-Command "cl" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
-  if ((-Not $CL_EXE) -or ($CL_EXE -match "HostX86\\x86") -or ($CL_EXE -match "HostX64\\x86")) {
+  if (-Not $CL_EXE) {
     $vsfound = getLatestVisualStudioWithDesktopWorkloadPath
     Write-Host "Found VS in ${vsfound}"
     Push-Location "${vsfound}/Common7/Tools"
-    cmd.exe /c "VsDevCmd.bat -arch=x64 & set" |
+    cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
     ForEach-Object {
       if ($_ -match "=") {
         $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])"  -value "$($v[1])"
       }
     }
     Pop-Location
-    $env:PATH = "${vsfound}/VC/Tools/Llvm/x64/bin;$env:PATH"
+    $env:PATH = "${vsfound}/VC/Tools/Llvm/${vsArchitecture}/bin;$env:PATH"
     Write-Host "Visual Studio Command Prompt variables set"
   }
 }
@@ -190,13 +215,13 @@ function DownloadNinja() {
   Remove-Item -Force -Recurse -ErrorAction SilentlyContinue ninja
   Remove-Item -Force -ErrorAction SilentlyContinue ninja.zip
   if ($IsWindows -or $IsWindowsPowerShell) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip"
   }
   elseif ($IsLinux) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip"
   }
   elseif ($IsMacOS) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-mac.zip"
   }
   else {
     MyThrow("Unknown OS, unsupported")
@@ -429,6 +454,10 @@ Export-ModuleMember -Variable IsWindowsPowerShell
 Export-ModuleMember -Variable IsInGitSubmodule
 Export-ModuleMember -Variable 64bitPwsh
 Export-ModuleMember -Variable 64bitOS
+Export-ModuleMember -Variable osArchitecture
+Export-ModuleMember -Variable vcpkgArchitecture
+Export-ModuleMember -Variable vsArchitecture
+Export-ModuleMember -Variable ExecutableSuffix
 Export-ModuleMember -Variable cuda_version_full
 Export-ModuleMember -Variable cuda_version_short
 Export-ModuleMember -Variable cuda_version_full_dashed

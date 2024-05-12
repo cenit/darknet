@@ -6,7 +6,7 @@
         build
         Created By: Stefano Sinigardi
         Created Date: February 18, 2019
-        Last Modified Date: April 29, 2024
+        Last Modified Date: May 12, 2024
 
 .DESCRIPTION
 Build tool using CMake, trying to properly setup the environment around compiler
@@ -201,7 +201,7 @@ param (
 
 $global:DisableInteractive = $DisableInteractive
 
-$build_ps1_version = "4.0.1"
+$build_ps1_version = "4.1.0"
 $script_name = $MyInvocation.MyCommand.Name
 $utils_psm1_avail = $false
 
@@ -353,31 +353,6 @@ if (($IsLinux -or $IsMacOS) -and ($ForceGCCVersion -gt 0)) {
   Write-Host "Manually setting CC and CXX variables to gcc version $ForceGCCVersion"
   $env:CC = "gcc-$ForceGCCVersion"
   $env:CXX = "g++-$ForceGCCVersion"
-}
-
-$osArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
-switch ($osArchitecture) {
-  "X86" {
-    $vcpkgArchitecture = "x86"
-    $vsArchitecture = "Win32"
-  }
-  "X64" {
-    $vcpkgArchitecture = "x64"
-    $vsArchitecture = "x64"
-  }
-  "Arm" {
-    $vcpkgArchitecture = "arm"
-    $vsArchitecture = "arm"
-  }
-  "Arm64" {
-    $vcpkgArchitecture = "arm64"
-    $vsArchitecture = "arm64"
-  }
-  default {
-    $vcpkgArchitecture = "x64"
-    $vsArchitecture = "x64"
-    Write-Output "Unknown architecture. Trying x64"
-  }
 }
 
 $vcpkg_triplet_set_by_this_script = $false
@@ -686,21 +661,7 @@ if (-Not $DoNotUseNinja) {
 }
 
 if (-Not $DoNotSetupVS) {
-  $CL_EXE = Get-Command "cl" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
-  if (-Not $CL_EXE) {
-    $vsfound = getLatestVisualStudioWithDesktopWorkloadPath
-    Write-Host "Found VS in ${vsfound}"
-    Push-Location "${vsfound}/Common7/Tools"
-    cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
-    ForEach-Object {
-      if ($_ -match "=") {
-        $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])"  -value "$($v[1])"
-      }
-    }
-    Pop-Location
-    Write-Host "Visual Studio Command Prompt variables set"
-  }
-
+  setupVisualStudio
   $tokens = getLatestVisualStudioWithDesktopWorkloadVersion
   $tokens = $tokens.split('.')
   if ($DoNotUseNinja) {
