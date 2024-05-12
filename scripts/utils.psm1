@@ -192,21 +192,34 @@ function getLatestVisualStudioWithDesktopWorkloadVersion([bool]$required = $true
   return $installationVersion
 }
 
-function setupVisualStudio([bool]$required = $true) {
+function setupVisualStudio([bool]$required = $true, [bool]$enable_clang = $false) {
   $CL_EXE = Get-Command "cl" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
   if (-Not $CL_EXE) {
-    $vsfound = getLatestVisualStudioWithDesktopWorkloadPath
-    Write-Host "Found VS in ${vsfound}"
-    Push-Location "${vsfound}/Common7/Tools"
-    cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
-    ForEach-Object {
-      if ($_ -match "=") {
-        $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])"  -value "$($v[1])"
+    $vsfound = getLatestVisualStudioWithDesktopWorkloadPath($required)
+    if (-Not $vsfound) {
+      if ($required) {
+        MyThrow("Could not locate any installation of Visual Studio")
+      }
+      else {
+        Write-Host "Could not locate any installation of Visual Studio" -ForegroundColor Red
+        return
       }
     }
-    Pop-Location
-    $env:PATH = "${vsfound}/VC/Tools/Llvm/${vsArchitecture}/bin;$env:PATH"
-    Write-Host "Visual Studio Command Prompt variables set"
+    else {
+      Write-Host "Found VS in ${vsfound}"
+      Push-Location "${vsfound}/Common7/Tools"
+      cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
+      ForEach-Object {
+        if ($_ -match "=") {
+          $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])" -value "$($v[1])"
+        }
+      }
+      Pop-Location
+      if ($enable_clang) {
+        $env:PATH = "${vsfound}/VC/Tools/Llvm/${vsArchitecture}/bin;$env:PATH"
+      }
+      Write-Host "Visual Studio Command Prompt variables set"
+    }
   }
 }
 
