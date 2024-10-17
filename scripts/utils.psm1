@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 #>
 
-$utils_psm1_version = "0.3.0"
+$utils_psm1_version = "1.4.1"
 $IsWindowsPowerShell = switch ( $PSVersionTable.PSVersion.Major ) {
   5 { $true }
   4 { $true }
@@ -38,6 +38,31 @@ if ($IsWindowsPowerShell -or $IsWindows) {
 
 $64bitPwsh = $([Environment]::Is64BitProcess)
 $64bitOS = $([Environment]::Is64BitOperatingSystem)
+$osArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+switch ($osArchitecture) {
+  "X86" {
+    $vcpkgArchitecture = "x86"
+    $vsArchitecture = "Win32"
+  }
+  "X64" {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+  }
+  "Arm" {
+    $vcpkgArchitecture = "arm"
+    $vsArchitecture = "arm"
+  }
+  "Arm64" {
+    $vcpkgArchitecture = "arm64"
+    $vsArchitecture = "arm64"
+  }
+  default {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+    Write-Output "Unknown architecture. Trying x64"
+  }
+}
+
 
 Push-Location $PSScriptRoot
 $GIT_EXE = Get-Command "git" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
@@ -55,10 +80,35 @@ else {
 }
 Pop-Location
 
-$cuda_version_full = "12.2.0"
-$cuda_version_short = "12.2"
+$cuda_version_full = "12.6.2"
+$cuda_version_short = "12.6"
 $cuda_version_full_dashed = $cuda_version_full.replace('.', '-')
 $cuda_version_short_dashed = $cuda_version_short.replace('.', '-')
+
+function activateVenv([string]$VenvPath) {
+  if ($IsWindowsPowerShell -or $IsWindows) {
+    $activate_script = "$VenvPath/Scripts/Activate.ps1"
+  }
+  else {
+    $activate_script = "$VenvPath/bin/Activate.ps1"
+  }
+
+  $activate_script = Resolve-Path $activate_script
+  $VenvPath = Resolve-Path $VenvPath
+
+  if ($env:VIRTUAL_ENV -eq $VenvPath) {
+    Write-Host "Venv already activated"
+    return
+  }
+  else {
+    Write-Host "Activating venv"
+    if (-Not (Test-Path $activate_script)) {
+      MyThrow("Could not find activate script at $activate_script")
+    }
+    & $activate_script
+  }
+}
+
 
 function getProgramFiles32bit() {
   $out = ${env:PROGRAMFILES(X86)}
@@ -167,18 +217,49 @@ function getLatestVisualStudioWithDesktopWorkloadVersion([bool]$required = $true
   return $installationVersion
 }
 
+function setupVisualStudio([bool]$required = $true, [bool]$enable_clang = $false) {
+  $CL_EXE = Get-Command "cl" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
+  if (-Not $CL_EXE) {
+    $vsfound = getLatestVisualStudioWithDesktopWorkloadPath($required)
+    if (-Not $vsfound) {
+      if ($required) {
+        MyThrow("Could not locate any installation of Visual Studio")
+      }
+      else {
+        Write-Host "Could not locate any installation of Visual Studio" -ForegroundColor Red
+        return
+      }
+    }
+    else {
+      Write-Host "Found VS in ${vsfound}"
+      Push-Location "${vsfound}/Common7/Tools"
+      cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
+      ForEach-Object {
+        if ($_ -match "=") {
+          $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])" -value "$($v[1])"
+        }
+      }
+      Pop-Location
+      if ($enable_clang) {
+        $env:PATH = "${vsfound}/VC/Tools/Llvm/${vsArchitecture}/bin;$env:PATH"
+      }
+      Write-Host "Visual Studio Command Prompt variables set"
+    }
+  }
+}
+
 function DownloadNinja() {
   Write-Host "Downloading a portable version of Ninja" -ForegroundColor Yellow
   Remove-Item -Force -Recurse -ErrorAction SilentlyContinue ninja
   Remove-Item -Force -ErrorAction SilentlyContinue ninja.zip
   if ($IsWindows -or $IsWindowsPowerShell) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-win.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-win.zip"
   }
   elseif ($IsLinux) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-linux.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-linux.zip"
   }
   elseif ($IsMacOS) {
-    $url = "https://github.com/ninja-build/ninja/releases/download/v1.10.2/ninja-mac.zip"
+    $url = "https://github.com/ninja-build/ninja/releases/download/v1.12.1/ninja-mac.zip"
   }
   else {
     MyThrow("Unknown OS, unsupported")
@@ -192,12 +273,12 @@ function DownloadNinja() {
 function DownloadAria2() {
   Write-Host "Downloading a portable version of Aria2" -ForegroundColor Yellow
   if ($IsWindows -or $IsWindowsPowerShell) {
-    $basename = "aria2-1.35.0-win-32bit-build1"
+    $basename = "aria2-1.37.0-win-32bit-build1"
     $zipName = "${basename}.zip"
     $outFolder = "$basename/$basename"
     Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $outFolder
     Remove-Item -Force -ErrorAction SilentlyContinue $zipName
-    $url = "https://github.com/aria2/aria2/releases/download/release-1.35.0/$zipName"
+    $url = "https://github.com/aria2/aria2/releases/download/release-1.37.0/$zipName"
     Invoke-RestMethod -Uri $url -Method Get -ContentType application/zip -OutFile $zipName
     Expand-Archive -Path $zipName
   }
@@ -226,6 +307,29 @@ function DownloadAria2() {
   }
   Remove-Item -Force -ErrorAction SilentlyContinue $zipName
   return "./$outFolder/aria2c${ExecutableSuffix}"
+}
+
+function DownloadLicencpp() {
+  $licencpp_version = "0.2.5"
+  Write-Host "Downloading a portable version of licencpp v${licencpp_version}" -ForegroundColor Yellow
+  if ($IsWindows -or $IsWindowsPowerShell) {
+    $basename = "licencpp-Windows"
+  }
+  elseif ($IsLinux) {
+    $basename = "licencpp-Linux"
+  }
+  else {
+    MyThrow("Unknown OS, unsupported")
+  }
+  $zipName = "${basename}.zip"
+  $outFolder = "${basename}"
+  Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $outFolder
+  Remove-Item -Force -ErrorAction SilentlyContinue $zipName
+  $url = "https://github.com/cenit/licencpp/releases/download/v${licencpp_version}/$zipName"
+  Invoke-RestMethod -Uri $url -Method Get -ContentType application/zip -OutFile $zipName
+  Expand-Archive -Path $zipName
+  Remove-Item -Force -ErrorAction SilentlyContinue $zipName
+  return "./$outFolder/licencpp${ExecutableSuffix}"
 }
 
 function Download7Zip() {
@@ -324,6 +428,65 @@ Function MyThrow ($Message) {
   }
 }
 
+Function CopyTexFile ($MyFile) {
+  $MyFileName = Split-Path $MyFile -Leaf
+  New-Item -ItemType Directory -Force -Path "~/${latex_path}" | Out-Null
+  if (-Not (Test-Path "~/${latex_path}/$MyFileName" )) {
+    Write-Host "Copying $MyFile to ~/${latex_path}"
+    Copy-Item "$MyFile" "~/${latex_path}"
+  }
+  else {
+    Write-Host "~/${latex_path}/$MyFileName already present"
+  }
+}
+
+Function dos2unix {
+  Param (
+    [Parameter(mandatory = $true)]
+    [string[]]$path
+  )
+
+  Get-ChildItem -File -Recurse -Path $path |
+  ForEach-Object {
+    Write-Host "Converting $_"
+    $x = get-content -raw -path $_.fullname; $x -replace "`r`n", "`n" | Set-Content -NoNewline -Force -path $_.fullname
+  }
+}
+
+Function unix2dos {
+  Param (
+    [Parameter(mandatory = $true)]
+    [string[]]$path
+  )
+
+  Get-ChildItem -File -Recurse -Path $path |
+  ForEach-Object {
+    $x = get-content -raw -path $_.fullname
+    $SearchStr = [regex]::Escape("`r`n")
+    $SEL = Select-String -InputObject $x -Pattern $SearchStr
+    if ($null -ne $SEL) {
+      Write-Host "Converting $_"
+      # do nothing: avoid creating files containing `r`r`n when using unix2dos twice on the same file
+    }
+    else {
+      Write-Host "Converting $_"
+      $x -replace "`n", "`r`n" | Set-Content -NoNewline -Force -path $_.fullname
+    }
+  }
+}
+
+Function UpdateRepo {
+  if ($GIT_EXE) {
+    Get-ChildItem -Directory |
+      ForEach-Object {
+      Set-Location $_.Name
+      git pull
+      git submodule update --recursive
+      Set-Location ..
+    }
+  }
+}
+
 Export-ModuleMember -Variable utils_psm1_version
 Export-ModuleMember -Variable IsWindowsPowerShell
 Export-ModuleMember -Variable IsInGitSubmodule
@@ -333,10 +496,21 @@ Export-ModuleMember -Variable cuda_version_full
 Export-ModuleMember -Variable cuda_version_short
 Export-ModuleMember -Variable cuda_version_full_dashed
 Export-ModuleMember -Variable cuda_version_short_dashed
+Export-ModuleMember -Variable osArchitecture
+Export-ModuleMember -Variable vcpkgArchitecture
+Export-ModuleMember -Variable vsArchitecture
+Export-ModuleMember -Variable ExecutableSuffix
+Export-ModuleMember -Function activateVenv
 Export-ModuleMember -Function getProgramFiles32bit
 Export-ModuleMember -Function getLatestVisualStudioWithDesktopWorkloadPath
 Export-ModuleMember -Function getLatestVisualStudioWithDesktopWorkloadVersion
+Export-ModuleMember -Function setupVisualStudio
 Export-ModuleMember -Function DownloadNinja
 Export-ModuleMember -Function DownloadAria2
 Export-ModuleMember -Function Download7Zip
+Export-ModuleMember -Function DownloadLicencpp
 Export-ModuleMember -Function MyThrow
+Export-ModuleMember -Function CopyTexFile
+Export-ModuleMember -Function dos2unix
+Export-ModuleMember -Function unix2dos
+Export-ModuleMember -Function UpdateRepo
