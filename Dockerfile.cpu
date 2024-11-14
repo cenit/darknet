@@ -14,7 +14,7 @@ RUN rm Dockerfile.cpu
 
 RUN rm Dockerfile.gpu
 
-RUN rm Docker-compose.yml
+RUN rm docker-compose.yml
 
 RUN make
 
@@ -28,7 +28,7 @@ RUN apt-get install -y sudo libgomp1
 
 RUN useradd -U -m yolo
 
-RUN usermod -aG sudo yolo 
+RUN usermod -aG sudo yolo
 
 RUN usermod --shell /bin/bash yolo
 
@@ -45,5 +45,3 @@ RUN ldconfig
 WORKDIR /home/yolo/darknet
 
 USER yolo
-
-

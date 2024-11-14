@@ -41,6 +41,8 @@ build/detect_cuda_compute_capabilities.cu
 build/.ninja_deps
 build/.ninja_log
 build/Makefile
+CMakeFiles/
+CMakeCache.txt
 */vcpkg-manifest-install.log
 build.log
 __pycache__/

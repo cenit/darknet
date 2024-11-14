@@ -6,7 +6,7 @@
         build
         Created By: Stefano Sinigardi
         Created Date: February 18, 2019
-        Last Modified Date: September 25, 2023
+        Last Modified Date: April 29, 2024
 
 .DESCRIPTION
 Build tool using CMake, trying to properly setup the environment around compiler
@@ -94,6 +94,12 @@ Force using a different buildtrees dir for vcpkg
 
 .PARAMETER ForceVCPKGPackagesRemoval
 Force clean up of vcpkg packages folder at the end of the script
+
+.PARAMETER CloneVCPKGShallow
+Clone vcpkg as shallow repository
+
+.PARAMETER ForceDisableVCPKGShallow
+Force vcpkg clone to NOT be a shallow one
 
 .PARAMETER ForceSetupVS
 Forces Visual Studio setup, also on systems on which it would not have been enabled automatically
@@ -183,6 +189,8 @@ param (
   [switch]$ForceVCPKGBuildtreesRemoval = $false,
   [string]$ForceVCPKGBuildtreesPath = "",
   [switch]$ForceVCPKGPackagesRemoval = $false,
+  [switch]$CloneVCPKGShallow = $false,
+  [switch]$ForceDisableVCPKGShallow = $false,
   [switch]$ForceSetupVS = $false,
   [switch]$ForceCMakeFromVS = $false,
   [switch]$ForceNinjaFromVS = $false,
@@ -197,13 +205,33 @@ param (
 
 $global:DisableInteractive = $DisableInteractive
 
-$build_ps1_version = "3.6.1"
+$build_ps1_version = "4.0.1"
 $script_name = $MyInvocation.MyCommand.Name
 $utils_psm1_avail = $false
 
-if (Test-Path $PSScriptRoot/scripts/utils.psm1) {
+if (Test-Path $PSScriptRoot/utils.psm1) {
+  Import-Module -Name $PSScriptRoot/utils.psm1 -Force
+  $utils_psm1_avail = $true
+}
+elseif (Test-Path $PSScriptRoot/cmake/utils.psm1) {
+  Import-Module -Name $PSScriptRoot/cmake/utils.psm1 -Force
+  $utils_psm1_avail = $true
+  $IsInGitSubmodule = $false
+}
+elseif (Test-Path $PSScriptRoot/ci/utils.psm1) {
+  Import-Module -Name $PSScriptRoot/ci/utils.psm1 -Force
+  $utils_psm1_avail = $true
+  $IsInGitSubmodule = $false
+}
+elseif (Test-Path $PSScriptRoot/ccm/utils.psm1) {
+  Import-Module -Name $PSScriptRoot/ccm/utils.psm1 -Force
+  $utils_psm1_avail = $true
+  $IsInGitSubmodule = $false
+}
+elseif (Test-Path $PSScriptRoot/scripts/utils.psm1) {
   Import-Module -Name $PSScriptRoot/scripts/utils.psm1 -Force
   $utils_psm1_avail = $true
+  $IsInGitSubmodule = $false
 }
 else {
   $utils_psm1_version = "unavail"
@@ -310,6 +338,10 @@ if ($InstallDARKNETthroughVCPKG -and -not $EnableOPENCV) {
 
 if ($UseVCPKG) {
   Write-Host "vcpkg bootstrap script: bootstrap-vcpkg${bootstrap_ext}"
+    if(($ForceOpenCVVersion -eq 0) -and -Not $ForceDisableVCPKGShallow) {
+      Write-Host "vcpkg will be cloned in shallow mode since baseline is not needed"
+      $CloneVCPKGShallow = $true
+    }
 }
 
 if ((-Not $IsWindows) -and (-Not $IsWindowsPowerShell) -and (-Not $ForceSetupVS)) {
@@ -327,6 +359,31 @@ if (($IsLinux -or $IsMacOS) -and ($ForceGCCVersion -gt 0)) {
   $env:CXX = "g++-$ForceGCCVersion"
 }
 
+$osArchitecture = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture
+switch ($osArchitecture) {
+  "X86" {
+    $vcpkgArchitecture = "x86"
+    $vsArchitecture = "Win32"
+  }
+  "X64" {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+  }
+  "Arm" {
+    $vcpkgArchitecture = "arm"
+    $vsArchitecture = "arm"
+  }
+  "Arm64" {
+    $vcpkgArchitecture = "arm64"
+    $vsArchitecture = "arm64"
+  }
+  default {
+    $vcpkgArchitecture = "x64"
+    $vsArchitecture = "x64"
+    Write-Output "Unknown architecture. Trying x64"
+  }
+}
+
 $vcpkg_triplet_set_by_this_script = $false
 $vcpkg_host_triplet_set_by_this_script = $false
 
@@ -340,48 +397,48 @@ if (($IsWindows -or $IsWindowsPowerShell) -and (-Not $env:VCPKG_DEFAULT_TRIPLET)
       $DoNotUseNinja = $true
       Write-Host "Warning: when building for 32bit windows target, only msbuild can be used and ninja will be disabled. Doing that for you!" -ForegroundColor Yellow
     }
-    $env:VCPKG_DEFAULT_TRIPLET = "x86-windows"
+    $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-windows"
     $vcpkg_triplet_set_by_this_script = $true
   }
   else {
     if($BuildDebug) {
-      $env:VCPKG_DEFAULT_TRIPLET = "x64-windows"
+      $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-windows"
       $vcpkg_triplet_set_by_this_script = $true
     }
     else {
-      $env:VCPKG_DEFAULT_TRIPLET = "x64-windows-release"
+      $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-windows-release"
       $vcpkg_triplet_set_by_this_script = $true
     }
   }
 }
 if (($IsWindows -or $IsWindowsPowerShell) -and (-Not $env:VCPKG_DEFAULT_HOST_TRIPLET)) {
   if ($BuildDebug) {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-windows"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-windows"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
   else {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-windows-release"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-windows-release"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
 }
 
 if ($IsMacOS -and (-Not $env:VCPKG_DEFAULT_TRIPLET)) {
   if ($BuildDebug) {
-    $env:VCPKG_DEFAULT_TRIPLET = "x64-osx"
+    $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-osx"
     $vcpkg_triplet_set_by_this_script = $true
   }
   else {
-    $env:VCPKG_DEFAULT_TRIPLET = "x64-osx-release"
+    $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-osx-release"
     $vcpkg_triplet_set_by_this_script = $true
   }
 }
 if ($IsMacOS -and (-Not $env:VCPKG_DEFAULT_HOST_TRIPLET)) {
   if ($BuildDebug) {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-osx"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-osx"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
   else {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-osx-release"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-osx-release"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
 }
@@ -389,22 +446,22 @@ if ($IsMacOS -and (-Not $env:VCPKG_DEFAULT_HOST_TRIPLET)) {
 if ($IsLinux -and (-Not $env:VCPKG_DEFAULT_TRIPLET)) {
   if ($true) {
     if ($BuildDebug) {
-      $env:VCPKG_DEFAULT_TRIPLET = "x64-linux"
+      $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-linux"
       $vcpkg_triplet_set_by_this_script = $true
     }
     else {
-      $env:VCPKG_DEFAULT_TRIPLET = "x64-linux-release"
+      $env:VCPKG_DEFAULT_TRIPLET = "${vcpkgArchitecture}-linux-release"
       $vcpkg_triplet_set_by_this_script = $true
     }
   }
 }
 if ($IsLinux -and (-Not $env:VCPKG_DEFAULT_HOST_TRIPLET)) {
   if ($BuildDebug) {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-linux"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-linux"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
   else {
-    $env:VCPKG_DEFAULT_HOST_TRIPLET = "x64-linux-release"
+    $env:VCPKG_DEFAULT_HOST_TRIPLET = "${vcpkgArchitecture}-linux-release"
     $vcpkg_host_triplet_set_by_this_script = $true
   }
 }
@@ -634,11 +691,11 @@ if (-Not $DoNotUseNinja) {
 
 if (-Not $DoNotSetupVS) {
   $CL_EXE = Get-Command "cl" -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Definition
-  if ((-Not $CL_EXE) -or ($CL_EXE -match "HostX86\\x86") -or ($CL_EXE -match "HostX64\\x86")) {
+  if (-Not $CL_EXE) {
     $vsfound = getLatestVisualStudioWithDesktopWorkloadPath
     Write-Host "Found VS in ${vsfound}"
     Push-Location "${vsfound}/Common7/Tools"
-    cmd.exe /c "VsDevCmd.bat -arch=x64 & set" |
+    cmd.exe /c "VsDevCmd.bat -arch=${vsArchitecture} & set" |
     ForEach-Object {
       if ($_ -match "=") {
         $v = $_.split("="); Set-Item -force -path "ENV:\$($v[0])"  -value "$($v[1])"
@@ -654,26 +711,26 @@ if (-Not $DoNotSetupVS) {
     $debugConfig = " --config Debug "
     $releaseConfig = " --config Release "
     if ($Use32bitTriplet) {
-      $targetArchitecture = "`"Win32`""
+      $targetArchitecture = "`"${vsArchitecture}`""
     }
     else {
-      $targetArchitecture = "`"x64`""
+      $targetArchitecture = "`"${vsArchitecture}`""
     }
     if ($tokens[0] -eq "14") {
       $generator = "Visual Studio 14 2015"
-      $AdditionalBuildSetup = $AdditionalBuildSetup + " -T `"host=x64`" -A $targetArchitecture"
+      $AdditionalBuildSetup = $AdditionalBuildSetup + " -A $targetArchitecture"
     }
     elseif ($tokens[0] -eq "15") {
       $generator = "Visual Studio 15 2017"
-      $AdditionalBuildSetup = $AdditionalBuildSetup + " -T `"host=x64`" -A $targetArchitecture"
+      $AdditionalBuildSetup = $AdditionalBuildSetup + " -A $targetArchitecture"
     }
     elseif ($tokens[0] -eq "16") {
       $generator = "Visual Studio 16 2019"
-      $AdditionalBuildSetup = $AdditionalBuildSetup + " -T `"host=x64`" -A $targetArchitecture"
+      $AdditionalBuildSetup = $AdditionalBuildSetup + " -A $targetArchitecture"
     }
     elseif ($tokens[0] -eq "17") {
       $generator = "Visual Studio 17 2022"
-      $AdditionalBuildSetup = $AdditionalBuildSetup + " -T `"host=x64`" -A $targetArchitecture"
+      $AdditionalBuildSetup = $AdditionalBuildSetup + " -A $targetArchitecture"
     }
     else {
       MyThrow("Unknown Visual Studio version, unsupported configuration")
@@ -740,7 +797,7 @@ if ($UseVCPKG -And -Not $ForceLocalVCPKG) {
 if (($null -eq $vcpkg_path) -and $UseVCPKG) {
   if (-Not (Test-Path "$PWD/vcpkg${VCPKGSuffix}")) {
     $shallow_copy = ""
-    if(($ForceOpenCVVersion -eq 0)) {
+    if($CloneVCPKGShallow) {
       $shallow_copy = " --depth 1 "
     }
     $proc = Start-Process -NoNewWindow -PassThru -FilePath $GIT_EXE -ArgumentList "clone $shallow_copy https://github.com/microsoft/vcpkg vcpkg${VCPKGSuffix}"
@@ -851,19 +908,12 @@ if ($BuildInstaller) {
 
 if (($ForceOpenCVVersion -eq 2) -and $UseVCPKG) {
   Write-Host "You requested OpenCV version 2, so vcpkg will install that version" -ForegroundColor Yellow
-  Write-Host "This requires using vcpkg.json.opencv23 as manifest file" -ForegroundColor Yellow
   $AdditionalBuildSetup = $AdditionalBuildSetup + " -DVCPKG_USE_OPENCV4=OFF -DVCPKG_USE_OPENCV2=ON"
 }
 
 if (($ForceOpenCVVersion -eq 3) -and $UseVCPKG) {
   Write-Host "You requested OpenCV version 3, so vcpkg will install that version" -ForegroundColor Yellow
-  Write-Host "This requires using vcpkg.json.opencv23 as manifest file" -ForegroundColor Yellow
   $AdditionalBuildSetup = $AdditionalBuildSetup + " -DVCPKG_USE_OPENCV4=OFF -DVCPKG_USE_OPENCV3=ON"
-}
-
-if($ForceOpenCVVersion -gt 0) {
-  Move-Item $PSCustomScriptRoot/vcpkg.json $PSCustomScriptRoot/vcpkg.json.bak
-  Move-Item $PSCustomScriptRoot/vcpkg.json.opencv23 $PSCustomScriptRoot/vcpkg.json
 }
 
 if ($UseVCPKG -and $ForceVCPKGCacheRemoval) {
@@ -1004,6 +1054,9 @@ else {
       Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $debug_build_folder
     }
 
+    if (-Not (Test-Path $DebugInstallPrefix)) {
+      New-Item -Path $DebugInstallPrefix -ItemType directory -Force | Out-Null
+    }
     New-Item -Path $debug_build_folder -ItemType directory -Force | Out-Null
     Set-Location $debug_build_folder
     $cmake_args = "-G `"$generator`" ${DebugBuildSetup} ${AdditionalBuildSetup} -S .."
@@ -1036,6 +1089,9 @@ else {
     Remove-Item -Force -Recurse -ErrorAction SilentlyContinue $release_build_folder
   }
 
+  if (-Not (Test-Path $ReleaseInstallPrefix)) {
+    New-Item -Path $ReleaseInstallPrefix -ItemType directory -Force | Out-Null
+  }
   New-Item -Path $release_build_folder -ItemType directory -Force | Out-Null
   Set-Location $release_build_folder
   $cmake_args = "-G `"$generator`" ${ReleaseBuildSetup} ${AdditionalBuildSetup} -S .."
@@ -1061,7 +1117,7 @@ else {
   if (-Not ($exitCode -eq 0)) {
     MyThrow("Build failed! Exited with error code $exitCode.")
   }
-  if (-Not $UseVCPKG -And -Not $DisableDLLcopy) {
+  if ($IsWindows -And -Not $UseVCPKG -And -Not $DisableDLLcopy) {
     $dllfiles = Get-ChildItem ./${dllfolder}/*.dll
     if ($dllfiles) {
       Copy-Item $dllfiles ..
@@ -1115,11 +1171,6 @@ if ($vcpkg_triplet_set_by_this_script) {
 }
 if ($vcpkg_host_triplet_set_by_this_script) {
   $env:VCPKG_DEFAULT_HOST_TRIPLET = $null
-}
-
-if($ForceOpenCVVersion -gt 0) {
-  Move-Item $PSCustomScriptRoot/vcpkg.json $PSCustomScriptRoot/vcpkg.json.opencv23
-  Move-Item $PSCustomScriptRoot/vcpkg.json.bak $PSCustomScriptRoot/vcpkg.json
 }
 
 if ($vcpkg_branch_set_by_this_script) {

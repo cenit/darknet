@@ -2,7 +2,7 @@ version: '2'
 
 services:
   yolo-gpu:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.gpu
     image: yolo:gpu
@@ -14,7 +14,7 @@ services:
               count: 1
               capabilities: [gpu]
   yolo-cpu:
-    build: 
+    build:
       context: .
       dockerfile: Dockerfile.cpu
     image: yolo:cpu
