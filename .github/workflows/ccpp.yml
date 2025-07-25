@@ -193,7 +193,7 @@ jobs:
 
     - name: 'Build'
       shell: pwsh
-      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -ForceOpenCVVersion 3 -DisableInteractive -DoNotUpdateTOOL
+      run: ${{ github.workspace }}/build.ps1 -UseVCPKG -DoNotUpdateVCPKG -EnableOPENCV -ForceOpenCVVersion 3 -DisableInteractive -DoNotUpdateTOOL -VCPKGFork "cenit" -VCPKGBranch "dev/cenit/opencv412" -VCPKGSuffix "_cenit"
 
 
   ubuntu-vcpkg-opencv2:
